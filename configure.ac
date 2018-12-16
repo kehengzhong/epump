@@ -31,6 +31,34 @@ if test "$GCC" = "yes" ; then
         fi
 fi
  
+# AC_CANONICAL_HOST is needed to access the 'host_os' variable    
+AC_CANONICAL_HOST
+
+build_linux=no
+build_windows=no
+build_mac=no
+
+# Detect the target system
+case "${host_os}" in
+    linux*)
+        CFLAGS="$CFLAGS -DUNIX"
+        ;;
+    hp*)
+        CFLAGS="$CFLAGS -DUNIX"
+        ;;
+    solaris*)
+        CFLAGS="$CFLAGS -DUNIX -D_SOLARIS_"
+        ;;
+    cygwin*|mingw*)
+        CFLAGS="$CFLAGS -D_WIN32"
+        ;;
+    darwin*)
+        CFLAGS="$CFLAGS -DOSX"
+        ;;
+    *)
+        AC_MSG_ERROR(["OS $host_os is not supported"])
+        ;;
+esac
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lm':
