@@ -2,7 +2,8 @@
 Welcome to have a try of EPump library. Any questions about EPump, please
 contact author via kehengzhong@hotmail.com. 
 
-The library EPump can run on most UNIX-like system, especially work better on Linux.
+The library EPump can run on most Unix-like system and Windows OS, especially work
+better on Linux.
 
 If you get the copy of EPump package on Unix-like system and find the configure
 scripts in the top directory have no execute permission, please type the following
