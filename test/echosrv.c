@@ -84,6 +84,8 @@ int main (int argc, char ** argv)
     listendev = eptcp_listen(pcore, listenport, NULL, &ret, echo_pump, pcore);
     if (!listendev) goto exit;
 
+    printf("EchoSrv TCP Port: %d being listened\n\n", listenport);
+    
     //all threads are all in charge of monitoring TCP incoming event
     iodev_bind_epump(listendev, BIND_ALL_EPUMP, NULL);
 
