@@ -9,7 +9,7 @@ If you get the copy of EPump package on Unix-like system and find the configure
 scripts in the top directory have no execute permission, please type the following
 commands before getting the library running:
 
-[kehengzhong@localhost epump]$ chmod +x autogen.sh configure ltmain.sh config.* decomp install.sh
+[kehengzhong@localhost epump]$ chmod +x autogen.sh configure ltmain.sh config.* depcomp install-sh
 
 then start the script configure to generate Makefile
 
