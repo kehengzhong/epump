@@ -32,7 +32,7 @@
 #endif
 
 #ifndef UNIX
-//#define UNIX
+#define UNIX
 #endif
 
 #ifdef _WIN32
