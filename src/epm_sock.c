@@ -43,6 +43,10 @@
 #ifdef _WIN32
 #include <Iphlpapi.h>
 #pragma comment(lib, "iphlpapi.lib")
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#include <io.h>
 #endif
 
 
@@ -140,13 +144,13 @@ uint16 epm_sock_addr_port (struct sockaddr * sa)
     return 0;
 }
 
-int epm_sock_inet_addr_parse (char * text, int len, in_addr_t * inaddr, int * retlen) 
+int epm_sock_inet_addr_parse (char * text, int len, uint32 * inaddr, int * retlen) 
 { 
     int       segs = 0;     /* Segment count. */ 
     int       chcnt = 0;    /* Character count within segment. */ 
     int       accum = 0;    /* Accumulator for segment. */ 
     uint32    sect[4];
-    in_addr_t addr = INADDR_ANY;
+    uint32    addr = INADDR_ANY;
     int       i;
  
     if (retlen) *retlen = 0;
@@ -325,7 +329,7 @@ int epm_sock_addr_parse (char * text, int len, ep_sockaddr_t * addr)
     if (!addr) return -3;
 
     /* try first to parse the string as the inet4 IPv4 */
-    ret = epm_sock_inet_addr_parse(text, len, &addr->u.addr4.sin_addr.s_addr, NULL);
+    ret = epm_sock_inet_addr_parse(text, len, (uint32 *)&addr->u.addr4.sin_addr.s_addr, NULL);
 
     if (ret > 0) {
         addr->u.addr4.sin_family = AF_INET;
@@ -343,7 +347,7 @@ int epm_sock_addr_parse (char * text, int len, ep_sockaddr_t * addr)
 }
 
 
-inline int checkcopy (ep_sockaddr_t * iter, struct addrinfo * rp)
+int checkcopy (ep_sockaddr_t * iter, struct addrinfo * rp)
 {
     if (rp->ai_family == AF_INET) {
         iter->socklen = rp->ai_addrlen;
@@ -455,11 +459,13 @@ int epm_sock_option_set (SOCKET fd, sockopt_t * opt)
     {
     }
 
+#ifdef SO_REUSEPORT
     if (opt->reuseport &&
         setsockopt(fd, SOL_SOCKET, SO_REUSEPORT,
                    (const void *)&opt->reuseport, sizeof(int)) < 0)
     {
     }
+#endif
 
     if (opt->keepalive &&
         setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE,
@@ -503,23 +509,29 @@ int epm_sock_option_set (SOCKET fd, sockopt_t * opt)
         }
     }
 
+#ifdef TCP_KEEPIDLE
     if (opt->keepidle > 0 &&
         setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE,
                    (const void *)&opt->keepidle, sizeof(int)) < 0)
     {
     }
+#endif
 
+#ifdef TCP_KEEPINTVL
     if (opt->keepintvl > 0 &&
         setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL,
                    (const void *)&opt->keepintvl, sizeof(int)) < 0)
     {
     }
+#endif
 
+#ifdef TCP_KEEPCNT
     if (opt->keepcnt > 0 &&
         setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT,
                    (const void *)&opt->keepcnt, sizeof(int)) < 0)
     {
     }
+#endif
 
 #ifdef SO_SETFIB
     if (opt->setfib > 0 &&
@@ -551,11 +563,13 @@ int epm_sock_option_set (SOCKET fd, sockopt_t * opt)
     }
 #endif
 
+#ifdef TCP_DEFER_ACCEPT
     if (opt->defer_accept > 0 &&
         setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT,
                    (const void *)&opt->defer_accept, sizeof(int)) < 0)
     {
     }
+#endif
 
 #ifdef IP_RECVDSTADDR
     if (opt->recv_dst_addr > 0 &&
@@ -571,11 +585,13 @@ int epm_sock_option_set (SOCKET fd, sockopt_t * opt)
     {
     }
 
+#ifdef IPV6_RECVPKTINFO
     if (opt->ipv6_recv_pktinfo > 0 &&
         setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
                    (const void *)&opt->ipv6_recv_pktinfo, sizeof(int)) < 0)
     {
     }
+#endif
 
     return 0;
 }
@@ -596,7 +612,9 @@ void addrinfo_print (struct addrinfo * rp)
     if (rp->ai_socktype == SOCK_STREAM) sprintf(buf+strlen(buf), " SOCK_STREAM");
     else if (rp->ai_socktype == SOCK_DGRAM) sprintf(buf+strlen(buf), " SOCK_DGRAM");
     else if (rp->ai_socktype == SOCK_RAW) sprintf(buf+strlen(buf), " SOCK_RAW");
-    else if (rp->ai_socktype == SOCK_PACKET) sprintf(buf+strlen(buf), " SOCK_PACKET");
+#ifdef SOCK_PACKET
+	else if (rp->ai_socktype == SOCK_PACKET) sprintf(buf+strlen(buf), " SOCK_PACKET");
+#endif
     else sprintf(buf+strlen(buf), " UnknownSockType");
 
     if (rp->ai_protocol == IPPROTO_IP) sprintf(buf+strlen(buf), " IPPROTO_IP");
@@ -677,7 +695,9 @@ SOCKET epm_tcp_listen (char * localip, int port, void * psockopt)
         } else { //set the default options
            one = 1;
            setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (void *)&one, sizeof(int));
+#ifdef SO_REUSEPORT
            setsockopt(listenfd, SOL_SOCKET, SO_REUSEPORT, (void *)&one, sizeof(int));
+#endif
            setsockopt(listenfd, SOL_SOCKET, SO_KEEPALIVE, (void *)&one, sizeof(int));
         }
 
@@ -753,8 +773,10 @@ SOCKET epm_tcp_connect_full (char * host, int port, int nonblk, char * lip, int 
 
         one = 1;
         setsockopt(confd, SOL_SOCKET, SO_REUSEADDR, (void *)&one, sizeof(int));
+#ifdef SO_REUSEPORT
         setsockopt(confd, SOL_SOCKET, SO_REUSEPORT, (void *)&one, sizeof(int));
-        setsockopt(confd, SOL_SOCKET, SO_KEEPALIVE, (void *)&one, sizeof(int));
+#endif
+		setsockopt(confd, SOL_SOCKET, SO_KEEPALIVE, (void *)&one, sizeof(int));
  
         if (nonblk) epm_sock_nonblock_set(confd, 1);
 

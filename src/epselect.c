@@ -164,7 +164,7 @@ int epump_select_dispatch (void * veps, epm_time_t * delay)
     nfds = select (maxfd, &rFds, &wFds, NULL, waitout);
 #else
 #ifdef _WIN32
-    nFds = select (0, &rFds, &wFds, NULL, waitout);
+    nfds = select (0, &rFds, &wFds, NULL, waitout);
 #endif
 #endif
 

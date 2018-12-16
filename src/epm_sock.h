@@ -107,7 +107,9 @@ typedef struct EP_SocketAddr_ {
         struct sockaddr        addr;
         struct sockaddr_in     addr4;
         struct sockaddr_in6    addr6;
-        struct sockaddr_un     addrun;
+#ifdef UNIX
+		struct sockaddr_un     addrun;
+#endif
     } u;
 
     int socklen;

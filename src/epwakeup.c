@@ -170,7 +170,7 @@ int epcore_wakeup_init (void * vpcore)
     epm_sock_nonblock_set(pcore->wakeupfd, 1);
 
 #ifdef _DEBUG
-debug_info("Wakeup: notify port = %d\n", pcore->informport);
+printf("Wakeup: notify port = %d\n", pcore->informport);
 #endif
 
     pcore->wakeupdev = pdev = (iodev_t *)epm_pool_fetch(pcore->device_pool);

@@ -27,8 +27,6 @@
 #include "epm_util.h"
 #include "epm_arr.h"
 
-#include <sys/time.h>
-
 
 #ifdef _MEMDBG
  

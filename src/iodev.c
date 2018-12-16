@@ -264,8 +264,10 @@ void iodev_linger_close (void * vdev)
 
     if (!pdev) return;
 
-    if (pdev->fdtype != FDT_ACCEPTED) 
-        return iodev_close(pdev);
+    if (pdev->fdtype != FDT_ACCEPTED) {
+        iodev_close(pdev);
+		return;
+	}
 
     pcore = (epcore_t *)pdev->epcore;
     if (!pcore) return;

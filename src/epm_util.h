@@ -32,7 +32,7 @@
 #endif
 
 #ifndef UNIX
-#define UNIX
+//#define UNIX
 #endif
 
 #ifdef _WIN32
@@ -47,6 +47,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <time.h>
 
 #ifdef UNIX
 #include <unistd.h>

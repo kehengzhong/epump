@@ -37,9 +37,8 @@
 #include "ioevent.h"
 #include "epwakeup.h"
 
-#include <sys/time.h>
+#ifdef UNIX
 #include <sys/resource.h>
-
 
 static int set_fd_limit(int max)
 {
@@ -67,7 +66,12 @@ static int set_fd_limit(int max)
 
      return 0;
 }
-
+#else
+static int set_fd_limit(int max)
+{
+	return 0;
+}
+#endif
 
 void * epcore_new (int maxfd)
 {

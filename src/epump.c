@@ -346,7 +346,7 @@ int epump_iodev_add (void * veps, void * vpdev)
   #ifdef HAVE_EPOLL
     epm_ht_set(epump->device_table, &pdev->fd, pdev);
   #else
-    if (arr_find_by(epump->device_list, &pdev->fd, iodev_cmp_fd) != pdev)
+    if (epm_arr_find_by(epump->device_list, &pdev->fd, iodev_cmp_fd) != pdev)
         epm_arr_insert_by(epump->device_list, pdev, iodev_cmp_iodev);
   #endif
 
@@ -438,7 +438,7 @@ SOCKET epump_iodev_maxfd (void * vepump)
     EnterCriticalSection(&epump->devicetableCS);
     num = epm_arr_num(epump->device_list);
     for (i=0; i<num; i++) {
-        pdev = (iodev_t *)arr_value(epump->device_list, i);
+        pdev = (iodev_t *)epm_arr_value(epump->device_list, i);
         if (!pdev) {
             epm_arr_delete(epump->device_list, i);
             continue;
@@ -495,7 +495,7 @@ int epump_device_scan (void * vepump)
             }
             if (nFds == SOCKET_ERROR /* && errno == EBADF*/) {
 #ifdef _DEBUG
-debug_info("[Monitor]: read FD=%d socket error, errno=%d %s.\n",
+printf("[Monitor]: read FD=%d socket error, errno=%d %s.\n",
             pdev->fd, errno, strerror(errno));
 #endif
                 /* clean up */
@@ -516,7 +516,7 @@ debug_info("[Monitor]: read FD=%d socket error, errno=%d %s.\n",
             }
             if (nFds == SOCKET_ERROR /*&& errno == EBADF*/) {
 #ifdef _DEBUG
-debug_info("[Monitor]: write FD=%d socket error, errno=%d %s.\n", pdev->fd, errno, strerror(errno));
+printf("[Monitor]: write FD=%d socket error, errno=%d %s.\n", pdev->fd, errno, strerror(errno));
 #endif
                 /* clean up */
                 FD_CLR (pdev->fd, &wFds);
@@ -604,9 +604,9 @@ unsigned WINAPI epump_main_thread (void * arg)
 #ifdef UNIX
 void * epump_main_thread (void * arg)
 {
+    pthread_detach(pthread_self());
 #endif
 
-    pthread_detach(pthread_self());
     epump_main_proc(arg);
 
 #ifdef UNIX
@@ -639,7 +639,7 @@ int epump_main_start (void * vpcore, int forkone)
     if (!forkone) return epump_main_proc(epump);
 
 #ifdef _WIN32
-    pcore->epumphandle = (HANDLE)_beginthreadex(
+    epump->epumphandle = (HANDLE)_beginthreadex(
                                 NULL,
                                 0,
                                 epump_main_thread,

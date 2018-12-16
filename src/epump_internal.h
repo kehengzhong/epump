@@ -50,7 +50,7 @@ typedef struct EPump_ {
     int                epoll_fd;        /* epoll file descriptor */
     struct epoll_event * epoll_events;
   #endif 
-  #if defined(HAVE_SELECT)
+  #if defined(HAVE_SELECT) || defined(_WIN32)
     CRITICAL_SECTION   fdsetCS;
     fd_set             readFds;         /* read file descriptor set */
     fd_set             writeFds;        /* write file descriptor set */

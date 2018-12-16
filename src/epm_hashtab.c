@@ -75,7 +75,7 @@ static ulong hash_key (char * str)
 epm_hashtab_t * epm_ht_new (int num, EpmHTCmp * cmp)
 {
     epm_hashtab_t * ret = NULL;
-    ulong     i = 0;
+    int     i = 0;
 
     ret = epm_zalloc(sizeof(*ret));
     if (ret == NULL)
@@ -173,8 +173,11 @@ void epm_ht_free_member (epm_hashtab_t * ht, void * vfunc)
      
     if (!ht) return;
      
-    if (!func) return epm_ht_zero(ht); 
-     
+    if (!func) { 
+        epm_ht_zero(ht);  
+        return;       
+    } 
+
     for (i = 0; i < ht->len; i++) {
         if (ht->ptab[i].count == 1) {
             (*func)(ht->ptab[i].dptr);  
