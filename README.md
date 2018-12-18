@@ -38,10 +38,11 @@ and the header file epump.h is copied to the location /usr/local/include.
 
 After including the header "epump.h", your program can call the APIs provided in it.
 
-  #include <epump.h>
+  `#include <epump.h>`
   
 Adding the following compiler options in Makefile, you'll be ready to go!
-  -I/usr/local/include -L/usr/local/lib -lepump
+
+  `-I/usr/local/include -L/usr/local/lib -lepump`
 
 Please refer to the test program for your coding. Further tutorial or documentation
 will be coming later. 
