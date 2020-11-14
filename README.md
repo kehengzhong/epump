@@ -224,7 +224,7 @@ ePump框架提供的功能接口函数涵盖了TCP、UDP、Unix Socket等通信设施所产生的文件描述
 
 ####  7.1.1 Listen服务端口类的iodev_t设备
 
-需要所有ePump线程都绑定该iodev_t设备，或对于支持SO_REUSEPORT Socket选项的操作系统，需要为每一个ePump线程在同一个主机、同一个Listen端口上创建多个iodev_t Listen设备，并绑定到该ePump线程中。这样做的目的是确保当有客户端网络连接请求时，所有ePump线程都能均衡地平分负载。当然，对于Linux内核版本低于3.9.x的系统，可能存在惊群效应，如何处理请参见后面章节。
+需要所有ePump线程都绑定该iodev_t设备，或对于支持SO_REUSEPORT Socket选项的操作系统，需要为每一个ePump线程在同一个主机、同一个Listen端口上创建多个iodev_t Listen设备，并绑定到该ePump线程中。这样做的目的是确保当有客户端网络连接请求时，所有ePump线程都能均衡地平分负载。当然，对于Linux内核版本低于3.9.x的系统，存在惊群效应，如何处理请参见第8.3.2节。
 
 #### 7.1.2 非Listen的iodev_t设备
 
@@ -354,10 +354,10 @@ $ make && make install
 
 The new generated ePump libraries will be installed into the default directory /usr/local/lib, and the header file epump.h is copied to the location /usr/local/include.
 
-After including the header "epump.h", your program can call the APIs provided in it.
+After including the header "epump.h", your program can call the APIs provided in it.  
   `#include <epump.h>`
   
-Adding the following compiler options in Makefile, you'll be ready to go!
+Adding the following compiler options in Makefile, you'll be ready to go!  
   `-I/usr/local/include -L/usr/local/lib -lepump`
 
 Please refer to the test program for your coding. Further tutorial or documentation will be coming later. 
