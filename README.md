@@ -47,17 +47,17 @@ ePump¿ò¼ÜÊÇ×÷ÕßÔÚÆä2003Äê¿ª·¢µÄeProbe¿ò¼ÜµÄ»ù´¡ÉÏ·¢Õ¹¶øÀ´£¬ÊÇEvent PumpµÄËõÐ´£¬¹
 
 #### 3.1.1 Éè±¸£¨iodev_t£©£º
 
-Õë¶ÔÃ¿¸öFD£¬Éè¼ÆÁËÒ»¸öÊý¾Ý½á¹¹Îªiodev_t£¬½«Ò»¸öÎÄ¼þÃèÊö·ûFD¿´´ýÎªÒ»¸öiodev_tÉè±¸£¬Õë¶ÔÕâ¸öÉè±¸À´¹ÜÀí¶ÁÐ´×´Ì¬¡¢FDÀàÐÍ¡¢Òª´¦ÀíµÄ¶ÁÐ´ÊÂ¼þ¡¢»Øµ÷º¯ÊýºÍ»Øµ÷²ÎÊý¡¢ËÄÔª×éµØÖ·µÈµÈ. ÎÒÃÇ°ÑTCP¼àÌýsocket¡¢TCPÁ¬½Ósocket£¨Ö÷¶¯Á¬½ÓµÄ¡¢±»¶¯½ÓÊÕµÄ£©¡¢UDP¼àÌýsocket¡¢UDP¿Í»§socket¡¢Unix Socket¡¢ICMP Raw Socket¡¢UDP Raw SocketµÈµÈ£¬¶¼Í¨¹ýiodev_tÉè±¸À´¹ÜÀí¡£
+Õë¶ÔÃ¿¸öFD£¬ÓÃÊý¾Ý½á¹¹Îªiodev_tÀ´¹ÜÀí£¬½«ÎÄ¼þÃèÊö·ûFDµ±×÷iodev_tÉè±¸£¬Õë¶ÔÉè±¸À´¹ÜÀí¶ÁÐ´×´Ì¬¡¢FDÀàÐÍ¡¢Òª´¦ÀíµÄ¶ÁÐ´ÊÂ¼þ¡¢»Øµ÷º¯ÊýºÍ»Øµ÷²ÎÊý¡¢ËÄÔª×éµØÖ·µÈµÈ. ÎÒÃÇ°ÑTCP¼àÌýsocket¡¢TCPÁ¬½Ósocket£¨Ö÷¶¯Á¬½ÓµÄ¡¢±»¶¯½ÓÊÕµÄ£©¡¢UDP¼àÌýsocket¡¢UDP¿Í»§socket¡¢Unix Socket¡¢ICMP Raw Socket¡¢UDP Raw SocketµÈµÈ£¬¶¼Í¨¹ýiodev_tÉè±¸À´¹ÜÀí¡£
 
 ËùÓÐµÄiodev_tÉè±¸¶¼»á²úÉúÊÂ¼þ£¬ePumpÏµÍ³¶Ôiodev_tÉè±¸²úÉúµÄÊÂ¼þ½øÐÐ´¦Àí£¬¼´Í¨¹ýÊÂ¼þÇý¶¯¶àÏß³ÌÀ´µ÷ÓÃ»Øµ÷º¯Êý¡£
  
 #### 3.1.2 ¶¨Ê±Æ÷£¨iotimer_t£©£º
 
-ÀàËÆiodev_tÉè±¸Ò»ÑùÄÜ²úÉúÇý¶¯ÊÂ¼þµÄ»¹ÓÐ¶¨Ê±Æ÷iotimer_t, Éè¶¨Ò»¸öÊ±¼ä²¢Æô¶¯¶¨Ê±Æ÷ºó£¬ÏµÍ³½«´Óµ±Ç°Ê±¿ÌÆðµ½Ö¸¶¨Ê±¼äµ½´ïÊ±£¬²úÉúTimeoutÊÂ¼þ¡£
+ÀàËÆiodev_tÉè±¸£¬ÄÜ²úÉúÇý¶¯ÊÂ¼þµÄ»¹ÓÐiotimer_t¶¨Ê±Æ÷, Éè¶¨Ò»¸öÊ±¼ä²¢Æô¶¯¶¨Ê±Æ÷ºó£¬ÏµÍ³½«´Óµ±Ç°Ê±¿ÌÆðµ½Ö¸¶¨Ê±¼äµ½´ïÊ±£¬²úÉúTimeoutÊÂ¼þ¡£
 
 iotimer_t¶¨Ê±Æ÷ÓÐÒ»´ÎÐÔµÄºÍÖÜÆÚÐÔµÄ£¬iotimer_t¶¨Ê±Æ÷Êý¾Ý½á¹¹¹ÜÀí¶¨Ê±Æ÷id¡¢»Øµ÷º¯ÊýºÍ»Øµ÷²ÎÊý¡¢¶¨Ê±µÄÊ±¼äµÈ¡£
  
-ÔÚUnixÀàOSÏµÍ³ÖÐÒ»¸ö½ø³ÌÖ»ÄÜÉèÖÃÒ»¸öÊ±ÖÓ¶¨Ê±Æ÷£¬ÓÉÏµÍ³Ìá¹©µÄ½Ó¿ÚÀ´ÉèÖÃ£¬³£ÓÃµÄÓÐalarm()ºÍsetitimer()¡£¶ÔÓÚÍ¨ÐÅÏµÍ³ÖÐ´óÁ¿´æÔÚµÄ¶¨Ê±Æ÷Ó¦ÓÃ£¬Í¬Ê±¿¼ÂÇ¿çÆ½Ì¨ÐÔµÈÐèÇó£¬ÏµÍ³Ìá¹©µÄ¶¨Ê±Æ÷½Ó¿ÚÒ»°ã¶¼²»ÄÜÂú×ãÐèÇó¡£ÎÒÃÇÔÚePumpÏµÍ³ÖÐÉè¼ÆÁËiotimer_tÊý¾Ý½á¹¹£¬¿ÉÌá¹©ºÁÃë¼¶¾«¶È¡¢Í¬Ê±´ó²¢·¢ÊýÁ¿µÄ¶¨Ê±Æ÷¹¦ÄÜÊµÏÖ¡£
+ÔÚUnixÀàOSÏµÍ³£¬Ò»¸ö½ø³ÌÖ»ÄÜÉèÖÃÒ»¸öÊ±ÖÓ¶¨Ê±Æ÷£¬ÓÉÏµÍ³Ìá¹©µÄ½Ó¿ÚÀ´ÉèÖÃ£¬³£ÓÃµÄÓÐalarm()ºÍsetitimer()¡£¶ÔÓÚÍ¨ÐÅÏµÍ³ÖÐ´óÁ¿´æÔÚ¸÷ÖÖ¶¨Ê±Æ÷ÐèÇó£¬Í¬Ê±¿¼ÂÇ¿çÆ½Ì¨ÐÔµÈ£¬ÏµÍ³Ìá¹©µÄ¶¨Ê±Æ÷½Ó¿ÚÒ»°ã¶¼²»ÄÜÂú×ãÐèÇó¡£ÎÒÃÇÔÚePumpÏµÍ³ÖÐÉè¼ÆÁËiotimer_tÊý¾Ý½á¹¹£¬¿ÉÌá¹©ºÁÃë¼¶¾«¶È¡¢Í¬Ê±´ó²¢·¢ÊýÁ¿µÄ¶¨Ê±Æ÷¹¦ÄÜÊµÏÖ¡£
  
 ePump¼Ü¹¹ÖÐ°Ñ¶¨Ê±Æ÷µ±×öÒ»¸öÖØÒªµÄ»ù´¡ÉèÊ©£¬ÓëÎÄ¼þÃèÊö·ûÉè±¸Ò»Ñù±»ePumpÏß³Ì¼àÌýºÍ¹ÜÀí¡£
 
