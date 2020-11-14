@@ -223,12 +223,14 @@ ePump框架提供的功能接口函数涵盖了TCP、UDP、Unix Socket等通信设施所产生的文件描述
 通过各种应用接口创建iodev_t设备后，需要选择一个ePump线程来执行该设备的监听和就绪通知（Readiness Notification），并将当前iodev_t设备和选择的ePump线程建立绑定关系，有绑定的ePump线程来监听和产生各种R/W事件。如何分配ePump线程需要取决于iodev_t的设备类型和绑定类型。
 
 ####  7.1.1 Listen服务端口类的iodev_t设备
-    需要所有ePump线程都绑定该iodev_t设备，或对于支持SO_REUSEPORT Socket选项的操作系统，需要为每一个ePump线程在同一个主机、同一个Listen端口上创建多个iodev_t Listen设备，并绑定到该ePump线程中。这样做的目的是确保当有客户端网络连接请求时，所有ePump线程都能均衡地平分负载。当然，对于Linux内核版本低于3.9.x的系统，可能存在惊群效应，如何处理请参见后面章节。
+
+需要所有ePump线程都绑定该iodev_t设备，或对于支持SO_REUSEPORT Socket选项的操作系统，需要为每一个ePump线程在同一个主机、同一个Listen端口上创建多个iodev_t Listen设备，并绑定到该ePump线程中。这样做的目的是确保当有客户端网络连接请求时，所有ePump线程都能均衡地平分负载。当然，对于Linux内核版本低于3.9.x的系统，可能存在惊群效应，如何处理请参见后面章节。
 
 #### 7.1.2 非Listen的iodev_t设备
-* **指定ePump线程**
+
+* **指定ePump线程**  
     根据调用参数指定的ePump线程来建立绑定关系。
-* **根据ePump线程的最低负载**
+* **根据ePump线程的最低负载**  
     ePump的负载主要是该线程绑定的iodev_t设备数量、iotimer_t定时器数量、该线程最近单位时间内产生的ioevent_t数量等指标来衡量，选择最低负载的ePump线程，可以让负载均衡地分摊到各个ePump线程中，从提升系统工作效率。
 
 ### 7.2 iotimer_t定时器
