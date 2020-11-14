@@ -1,5 +1,5 @@
 
-ePumpÊÇÊ²Ã´£¿
+Ò». ePumpÊÇÊ²Ã´£¿
 ------
 
 ePumpÊÇÒ»¸ö»ùÓÚI/OÊÂ¼þÍ¨Öª¡¢·Ç×èÈûÍ¨ÐÅ¡¢¶àÂ·¸´ÓÃ¡¢¶àÏß³ÌµÈ»úÖÆ¿ª·¢µÄÊÂ¼þÇý¶¯Ä£ÐÍµÄ C ÓïÑÔÓ¦ÓÃ¿ª·¢¿ò¼Ü£¬ÀûÓÃ¸Ã¿ò¼Ü¿ÉÒÔºÜÈÝÒ×µØ¿ª·¢³ö¸ßÐÔÄÜ¡¢´ó²¢·¢Á¬½ÓµÄ·þÎñÆ÷³ÌÐò¡£
@@ -11,7 +11,7 @@ ePump¸ºÔð¹ÜÀíºÍ¼à¿Ø´¦ÓÚ·Ç×èÈûÄ£Ê½µÄÎÄ¼þÃèÊö·ûFDºÍ¶¨Ê±Æ÷£¬¸ù¾ÝÆä×´Ì¬±ä»¯²úÉúÏàÓ¦µ
 Ó¦ÓÃ³ÌÐòµ÷ÓÃePump¿ò¼ÜÌá¹©µÄ½Ó¿Úº¯ÊýÀ´Ô¤ÏÈ´´½¨¡¢´ò¿ª¸÷ÖÖÍøÂçÍ¨ÐÅSocketÎÄ¼þÃèÊö·ûFD£¬»òÆô¶¯¶¨Ê±Æ÷µÈ£¬²¢½«ÆäÌí¼Ó»ò°ó¶¨µ½ePumpÏß³ÌµÄ¼à¿Ø¶ÓÁÐÖÐ£¬¶ÔÕâÐ©FDºÍ¶¨Ê±Æ÷µÄ×´Ì¬¼à¿ØÊÇ²ÉÓÃ²Ù×÷ÏµÍ³Ìá¹©µÄI/OÊÂ¼þÍ¨ÖªÉèÊ©£¬Èçepoll¡¢select¡¢poll¡¢kqueue¡¢completion portµÈ¡£
 
 
-ePump½â¾öÊ²Ã´£¿
+¶þ. ePump½â¾öÊ²Ã´£¿
 ------
 
 Ðí¶à·þÎñÆ÷³ÌÐòÐèÒª´¦ÀíÀ´×Ô¿Í»§²à·¢ÆðµÄ´ó²¢·¢TCPÁ¬½ÓÇëÇó¡¢UDPÇëÇó£¬ÈçWeb·þÎñÆ÷¡¢Online·þÎñÆ÷¡¢ÏûÏ¢ÏµÍ³µÈ¡£ÔçÆÚÊµÏÖµÄÍ¨ÐÅ·þÎñÆ÷ÀàÏµÍ³ÖÐ£¬Ò»¸öÁ¬½ÓÇëÇóÍ¨³£ÊÇÓÉÒ»¸ö¶ÀÁ¢µÄ½ø³Ì»òÏß³ÌÀ´½ÓÊÜ²¢´¦ÀíÍ¨ÐÅÏ¸½Ú£¬ÈçÔçÏÈµÄApache Web·þÎñÆ÷£»»òÕßÊÇÀûÓÃOSÌá¹©µÄI/OÒì²½ÊÂ¼þÍ¨Öª¡¢¶àÂ·¸´ÓÃ»úÖÆÊµÏÖµ¥½ø³ÌÏÂ´¦Àí¶à¸ö·Ç×èÈû²¢·¢Á¬½ÓÇëÇó£¬ÈçSQUIDÏµÍ³¡£
@@ -27,7 +27,7 @@ ePump¿ò¼ÜÊÇÒ»¸ö¶àÏß³Ì£¨Î´À´Ôö¼Ó¶à½ø³Ì£©ÊÂ¼þÇý¶¯Ä£ÐÍ¿ò¼Ü£¬»ùÓÚÎÄ¼þÃèÊö·ûµÄÒì²½¾ÍÐ
 ´óÁ¿¸´ÔÓµÄµ×²ã´¦ÀíÏ¸½Ú¶¼±»·â×°³ÉÒ»Ð©¼òµ¥Ò×ÓÃµÄAPI½Ó¿Úº¯Êý£¬Í¨¹ýÕâÐ©APIº¯Êý£¬¿ª·¢Õß¿ÉÒÔ¿ìËÙ¿ª·¢³öÖ§³Å´ó²¢·¢µÄ¸ßÐÔÄÜ·þÎñÆ÷³ÌÐò¡£
 
 
-ePump¿ò¼Ü¹¤×÷Ô­Àí
+Èý. ePump¿ò¼Ü¹¤×÷Ô­Àí
 ------
  
 ePump¿ò¼ÜÊÇ×÷ÕßÔÚÆä2003Äê¿ª·¢µÄeProbe¿ò¼ÜµÄ»ù´¡ÉÏ·¢Õ¹¶øÀ´£¬ÊÇEvent PumpµÄËõÐ´£¬¹ËÃûË¼ÒåÕâÊÇÒ»¸öÊÂ¼þÇý¶¯¼Ü¹¹¡£
@@ -41,17 +41,17 @@ ePump¿ò¼ÜÊÇ×÷ÕßÔÚÆä2003Äê¿ª·¢µÄeProbe¿ò¼ÜµÄ»ù´¡ÉÏ·¢Õ¹¶øÀ´£¬ÊÇEvent PumpµÄËõÐ´£¬¹
 * ¼ì²éTimeout£¬Ö´ÐÐTimeoutÊÂ¼þ¶ÔÓ¦µÄ»Øµ÷º¯Êý
 
 
-### ePump»ù´¡Êý¾Ý½á¹¹
+### 3.1 ePump»ù´¡Êý¾Ý½á¹¹
 
 ¸ù¾ÝÒÔÉÏ¹¤×÷Ô­Àí£¬ÎÒÃÇÉè¼ÆePump¿ò¼ÜµÄ¼¸¸ö»ù´¡Êý¾Ý½á¹¹£º
 
-#### Éè±¸£¨iodev_t£©£º
+#### 3.1.1 Éè±¸£¨iodev_t£©£º
 
 Õë¶ÔÃ¿¸öFD£¬Éè¼ÆÁËÒ»¸öÊý¾Ý½á¹¹Îªiodev_t£¬½«Ò»¸öÎÄ¼þÃèÊö·ûFD¿´´ýÎªÒ»¸öiodev_tÉè±¸£¬Õë¶ÔÕâ¸öÉè±¸À´¹ÜÀí¶ÁÐ´×´Ì¬¡¢FDÀàÐÍ¡¢Òª´¦ÀíµÄ¶ÁÐ´ÊÂ¼þ¡¢»Øµ÷º¯ÊýºÍ»Øµ÷²ÎÊý¡¢ËÄÔª×éµØÖ·µÈµÈ. ÎÒÃÇ°ÑTCP¼àÌýsocket¡¢TCPÁ¬½Ósocket£¨Ö÷¶¯Á¬½ÓµÄ¡¢±»¶¯½ÓÊÕµÄ£©¡¢UDP¼àÌýsocket¡¢UDP¿Í»§socket¡¢Unix Socket¡¢ICMP Raw Socket¡¢UDP Raw SocketµÈµÈ£¬¶¼Í¨¹ýiodev_tÉè±¸À´¹ÜÀí¡£
 
 ËùÓÐµÄiodev_tÉè±¸¶¼»á²úÉúÊÂ¼þ£¬ePumpÏµÍ³¶Ôiodev_tÉè±¸²úÉúµÄÊÂ¼þ½øÐÐ´¦Àí£¬¼´Í¨¹ýÊÂ¼þÇý¶¯¶àÏß³ÌÀ´µ÷ÓÃ»Øµ÷º¯Êý¡£
  
-#### ¶¨Ê±Æ÷£¨iotimer_t£©£º
+#### 3.1.2 ¶¨Ê±Æ÷£¨iotimer_t£©£º
 
 ÀàËÆiodev_tÉè±¸Ò»ÑùÄÜ²úÉúÇý¶¯ÊÂ¼þµÄ»¹ÓÐ¶¨Ê±Æ÷iotimer_t, Éè¶¨Ò»¸öÊ±¼ä²¢Æô¶¯¶¨Ê±Æ÷ºó£¬ÏµÍ³½«´Óµ±Ç°Ê±¿ÌÆðµ½Ö¸¶¨Ê±¼äµ½´ïÊ±£¬²úÉúTimeoutÊÂ¼þ¡£
 
@@ -62,7 +62,7 @@ iotimer_t¶¨Ê±Æ÷ÓÐÒ»´ÎÐÔµÄºÍÖÜÆÚÐÔµÄ£¬iotimer_t¶¨Ê±Æ÷Êý¾Ý½á¹¹¹ÜÀí¶¨Ê±Æ÷id¡¢»Øµ÷º¯
 ePump¼Ü¹¹ÖÐ°Ñ¶¨Ê±Æ÷µ±×öÒ»¸öÖØÒªµÄ»ù´¡ÉèÊ©£¬ÓëÎÄ¼þÃèÊö·ûÉè±¸Ò»Ñù±»ePumpÏß³Ì¼àÌýºÍ¹ÜÀí¡£
 
 
-#### ÊÂ¼þ£¨ioevent_t£©£º
+#### 3.1.3 ÊÂ¼þ£¨ioevent_t£©£º
 
 ioevent_tÊÂ¼þÊÇePumpµÄÐÅÊ¹£¬¹ÜÀíÊÂ¼þÀàÐÍ¡¢²úÉúÊÂ¼þµÄ¶ÔÏó¡¢ÊÂ¼þµÄ»Øµ÷º¯ÊýºÍ²ÎÊý¡£
 
@@ -73,7 +73,7 @@ iodev_tÉè±¸»ùÓÚ¸÷ÖÖÓ²¼þÉè±¸µÄR/W×´Ì¬±ä¶¯£¬´¥·¢ioevent_tÊÂ¼þµÄ²úÉú£¬¶øiotimer_t¶¨
 ¸÷ÖÖÌõ¼þÏÂ²úÉúµÄÕâÐ©ÊÂ¼þ£¬¶¼»á±»ÅÉËÍµ½¹¤×÷Ïß³ÌµÄÊÂ¼þ¶ÓÁÐ£¬Çý¶¯¹¤×÷Ïß³ÌÀ´½øÐÐÊÂ¼þ´¦Àí£¬»òÕß¼¤»îÏàÓ¦µÄ»Øµ÷º¯ÊýÀ´´¦ÀíÊÂ¼þ¡£
 
 
-### ePump¶àÏß³Ì¼Ü¹¹
+### 3.2 ePump¶àÏß³Ì¼Ü¹¹
 
 ePump¼Ü¹¹ÊÇÓÉ¶àÏß³ÌÀ´¹¹³ÉµÄ£¬°´ÕÕ¹¤×÷Á÷³Ì£¬ÕâÐ©Ïß³Ì·Ö³ÉÁ½Àà£¬Ò»ÀàÊÇePumpÏß³Ì£¬ÁíÒ»ÀàÊÇworkerÏß³Ì¡£ePumpÏß³ÌÖ°ÄÜÖ÷ÒªÊÇ¸ºÔð¼àÌýÎÄ¼þÃèÊöµÄR/W¶ÁÐ´×´Ì¬ºÍ¶¨Ê±Æ÷¶ÓÁÐ£¬´´½¨¶ÁÐ´ÊÂ¼þºÍ¶¨Ê±Æ÷ÊÂ¼þ£¬²¢½«ioevent_tÊÂ¼þÅÉ·¢µ½¸÷¸öworkerÏß³ÌµÄÊÂ¼þ¶ÓÁÐÖÐ¡£workerÏß³ÌÖ°ÄÜÊÇ¼àÌýÊÂ¼þ¶ÓÁÐ£¬Ö´ÐÐÊÂ¼þ¶ÓÁÐÖÐ¸÷¸öÊÂ¼þ¹ØÁªµÄ»Øµ÷º¯Êý¡£
  
@@ -88,35 +88,35 @@ ePumpÏß³Ì³ýÁË¼àÌýÎÄ¼þÃèÊö·ûFD¶ÔÓ¦µÄiodev_tÉè±¸¡¢¹ÜÀíiotimer_t¶¨Ê±Æ÷¶ÓÁÐ¡¢´´½¨ioe
 ÎªÁË±£Ö¤¹¤×÷Ð§ÂÊ£¬ePump¼Ü¹¹µÄÏß³Ì×ÜÊý£¬¼´°üÀ¨ePumpÏß³ÌºÍworker¹¤×÷Ïß³Ì£¬×îºÃÎªCPUµÄCore ProcessorÊýÁ¿£¬ÕâÑùÄÜÈ·±£ÍêÈ«²¢ÐÐ´¦Àí¡£
  
  
-ePump¿ò¼Ü¹¤×÷Ä£ÐÍ
+ËÄ. ePump¿ò¼Ü¹¤×÷Ä£ÐÍ
 ------
 
 ÏÈ¶¨ÒåÇå³þÊ²Ã´ÊÇ¿ìÒµÎñºÍÂýÒµÎñ¡£¿ìÒµÎñÊÇÖ¸½ÓÊÕµ½¿Í»§¶ËµÄÇëÇóºó£¬ÆäÒµÎñ´¦Àí¹ý³ÌÏà¶Ô¼òµ¥¿ìËÙ£¬Ã»ÓÐ³¤Ê±¼ä×èÈûºÍµÈ´ýµÄÒµÎñ´¦ÀíÁ÷³Ì£»Ïà·´£¬ÂýÒµÎñÔòÊÇÖ¸ÔÚ´¦Àí¿Í»§¶ËµÄÇëÇóÊ±£¬ÐèÒª½Ï³¤Ê±¼äµÄ×èÈûºÍµÈ´ý£¬Èç´æÔÚÊý¾Ý¿âÂý²éÑ¯¡¢Âý²åÈëµÄÒµÎñÁ÷³ÌµÈ¡£
 
 ePump¿ò¼Ü½á¹¹·Ç³£Áé»î£¬»ùÓÚÒµÎñÇé¿ö£¬¿É·Ö³ÉÁ½Àà¹¤×÷Ä£ÐÍ£º
 
-* **1. ¿ìÒµÎñÄ£ÐÍ -- Ã»ÓÐworkerÏß³Ì£¬Ö»ÓÐePumpÏß³Ì**
+### 4.1 ¿ìÒµÎñÄ£ÐÍ -- Ã»ÓÐworkerÏß³Ì£¬Ö»ÓÐePumpÏß³Ì
 
-    * ePumpÏß³Ì¼È¸ºÔðiodev_tºÍiotimer_tµÄ¼àÌý¡¢ioevent_tÊÂ¼þµÄ´´½¨ºÍ·Ö·¢£¬Í¬Ê±»¹¿ÉÒÔ³äµ±¹¤×÷Ïß³ÌµÄÖ°ÄÜ£¬´¦ÀíÆäFIFOÊÂ¼þ¶ÓÁÐÖÐµÄioevent_tÊÂ¼þ¡£ÀàËÆÕâ¸ö¹¤×÷Ä£ÐÍµÄÓ¦ÓÃÏµÍ³ÊÇNginx Web·þÎñÆ÷¡£
+* ePumpÏß³Ì¼È¸ºÔðiodev_tºÍiotimer_tµÄ¼àÌý¡¢ioevent_tÊÂ¼þµÄ´´½¨ºÍ·Ö·¢£¬Í¬Ê±»¹¿ÉÒÔ³äµ±¹¤×÷Ïß³ÌµÄÖ°ÄÜ£¬´¦ÀíÆäFIFOÊÂ¼þ¶ÓÁÐÖÐµÄioevent_tÊÂ¼þ¡£ÀàËÆÕâ¸ö¹¤×÷Ä£ÐÍµÄÓ¦ÓÃÏµÍ³ÊÇNginx Web·þÎñÆ÷¡£
 
-    * Õâ¸öÄ£ÐÍ×î´óµÄÈ±µãÊÇ£ºÒ»µ©Í¨¹ýµ÷ÓÃ»Øµ÷º¯Êý´¦ÀíÊÂ¼þÆÚ¼ä£¬³öÏÖÂýÒµÎñÇé¿ö£¬¼´³¤Ê±¼äµÈ´ý»ò×èÈûµÈ£¬Æ©Èç¶ÁÐ´Êý¾Ý¿âÊ±£¬³¤Ê±¼ä×èÈûµÈ´ý²éÑ¯½á¹ûµÈ£¬¾Í»áµ¼ÖÂºóÐøÆäËûµÄiodev_tÉè±¸ÖÐµÄÎÄ¼þÃèÊöFDµÄI/O¾ÍÐ÷£¨Readiness£©×´Ì¬£¬¼°iotimer_t¶¨Ê±Æ÷³¬Ê±×´Ì¬£¬²»ÄÜ±»¼°Ê±ÓÐÐ§µØ´¦Àí¡£Ò»¸öÊÂ¼þµÄ´¦ÀíÑÓ³Ù£¬»áµ¼ÖÂ´óÁ¿ÆäËûiodev_tÉè±¸µÄ×´Ì¬±ä»¯¡¢»ò¶¨Ê±Æ÷µÄ³¬Ê±µÈµÃ²»µ½¼°Ê±¿ìËÙµÄ´¦Àí£¬´Ó¶ø²úÉú×ÜÌå´¦ÀíÉÏµÄÑÓ³Ù¡¢×èÈû¡¢ÉõÖÁÃ»ÓÐÏìÓ¦»òÕß±ÀÀ£¡£
+* Õâ¸öÄ£ÐÍ×î´óµÄÈ±µãÊÇ£ºÒ»µ©Í¨¹ýµ÷ÓÃ»Øµ÷º¯Êý´¦ÀíÊÂ¼þÆÚ¼ä£¬³öÏÖÂýÒµÎñÇé¿ö£¬¼´³¤Ê±¼äµÈ´ý»ò×èÈûµÈ£¬Æ©Èç¶ÁÐ´Êý¾Ý¿âÊ±£¬³¤Ê±¼ä×èÈûµÈ´ý²éÑ¯½á¹ûµÈ£¬¾Í»áµ¼ÖÂºóÐøÆäËûµÄiodev_tÉè±¸ÖÐµÄÎÄ¼þÃèÊöFDµÄI/O¾ÍÐ÷£¨Readiness£©×´Ì¬£¬¼°iotimer_t¶¨Ê±Æ÷³¬Ê±×´Ì¬£¬²»ÄÜ±»¼°Ê±ÓÐÐ§µØ´¦Àí¡£Ò»¸öÊÂ¼þµÄ´¦ÀíÑÓ³Ù£¬»áµ¼ÖÂ´óÁ¿ÆäËûiodev_tÉè±¸µÄ×´Ì¬±ä»¯¡¢»ò¶¨Ê±Æ÷µÄ³¬Ê±µÈµÃ²»µ½¼°Ê±¿ìËÙµÄ´¦Àí£¬´Ó¶ø²úÉú×ÜÌå´¦ÀíÉÏµÄÑÓ³Ù¡¢×èÈû¡¢ÉõÖÁÃ»ÓÐÏìÓ¦»òÕß±ÀÀ£¡£
 
-    * Õë¶ÔÕâÀàÂýÒµÎñ£¬²ÉÓÃÀàËÆÓÚApache Web·þÎñÆ÷ÄÇÖÖ¶ÀÕ¼Ê½½ø³Ì/Ïß³Ì¼Ü¹¹Ä£ÐÍ±È½ÏÊÊºÏ£¬µ«×ÜÌåÀ´Ëµ£¬ÕâÖÖ¶ÀÕ¼Ê½½ø³Ì/Ïß³ÌÄ£ÐÍ£¬¶Ô¶àºËCPU²¢ÐÐ´¦ÀíÄÜÁ¦µÄÀûÓÃÐ§ÂÊ·Ç³£µÍÏÂ£¬²¢·¢ÊýÁ¿½ÏµÍ¡£
+* Õë¶ÔÕâÀàÂýÒµÎñ£¬²ÉÓÃÀàËÆÓÚApache Web·þÎñÆ÷ÄÇÖÖ¶ÀÕ¼Ê½½ø³Ì/Ïß³Ì¼Ü¹¹Ä£ÐÍ±È½ÏÊÊºÏ£¬µ«×ÜÌåÀ´Ëµ£¬ÕâÖÖ¶ÀÕ¼Ê½½ø³Ì/Ïß³ÌÄ£ÐÍ£¬¶Ô¶àºËCPU²¢ÐÐ´¦ÀíÄÜÁ¦µÄÀûÓÃÐ§ÂÊ·Ç³£µÍÏÂ£¬²¢·¢ÊýÁ¿½ÏµÍ¡£
 
-    * ¸ÃÄ£ÐÍ×î´óµÄºÃ´¦ÊÇ£º¶Ô¶àºËCPU²¢ÐÐ¼ÆËãºÍ´¦ÀíµÄÀûÓÃÐ§ÂÊ¿É´ïµ½¼«ÖÂ£¬ÊÊºÏ´¦ÀíÄÇÖÖÐèÒª¿ìËÙÏìÓ¦ÐÍµÄÍ¨ÐÅ»òÒµÎñÏµÍ³¡£
+* ¸ÃÄ£ÐÍ×î´óµÄºÃ´¦ÊÇ£º¶Ô¶àºËCPU²¢ÐÐ¼ÆËãºÍ´¦ÀíµÄÀûÓÃÐ§ÂÊ¿É´ïµ½¼«ÖÂ£¬ÊÊºÏ´¦ÀíÄÇÖÖÐèÒª¿ìËÙÏìÓ¦ÐÍµÄÍ¨ÐÅ»òÒµÎñÏµÍ³¡£
  
-* **2. ¸´ºÏÒµÎñÄ£ÐÍ -- ÉÙÊýePumpÏß³Ì£¬´ó¶àÊýworkerÏß³Ì**
+### 4.2 ¸´ºÏÒµÎñÄ£ÐÍ -- ÉÙÊýePumpÏß³Ì£¬´ó¶àÊýworkerÏß³Ì
 
-    * ePumpÏß³ÌÖ»¸ºÔðiodev_tºÍiotimer_tµÄ¼àÌý¡¢ioevent_tÊÂ¼þµÄ´´½¨ºÍ·Ö·¢£¬²»¸ºÔð´¦ÀíÊÂ¼þ¡£workerÏß³Ì¸ºÔð´¦ÀíËùÓÐ²úÉúµÄioevent_tÊÂ¼þ£¬µ÷ÓÃÕâÐ©ÊÂ¼þµÄ»Øµ÷º¯Êý£¬´Ó¶ø´¦ÀíÓ¦ÓÃ²ãÒµÎñÁ÷³Ì¡£
+* ePumpÏß³ÌÖ»¸ºÔðiodev_tºÍiotimer_tµÄ¼àÌý¡¢ioevent_tÊÂ¼þµÄ´´½¨ºÍ·Ö·¢£¬²»¸ºÔð´¦ÀíÊÂ¼þ¡£workerÏß³Ì¸ºÔð´¦ÀíËùÓÐ²úÉúµÄioevent_tÊÂ¼þ£¬µ÷ÓÃÕâÐ©ÊÂ¼þµÄ»Øµ÷º¯Êý£¬´Ó¶ø´¦ÀíÓ¦ÓÃ²ãÒµÎñÁ÷³Ì¡£
 
-    * workerÏß³ÌÖ´ÐÐÉÏ²ãÓ¦ÓÃ×¢²áµÄ»Øµ÷º¯ÊýÊ±£¬Ö´ÐÐ¹ý³ÌµÄ×èÈû²¢²»»áÌ±»¾ÆäËûiodev_tÉè±¸»ò¶¨Ê±Æ÷µÈµÄÊÂ¼þ£¬ÄÜÈ·±£ÆäËûÉè±¸»ò¶¨Ê±Æ÷ÊÂ¼þÄÜÍ¨¹ýÆäËûworker¹¤×÷Ïß³Ì½øÐÐ¼°Ê±ÓÐÐ§µÄ´¦Àí¡£
+* workerÏß³ÌÖ´ÐÐÉÏ²ãÓ¦ÓÃ×¢²áµÄ»Øµ÷º¯ÊýÊ±£¬Ö´ÐÐ¹ý³ÌµÄ×èÈû²¢²»»áÌ±»¾ÆäËûiodev_tÉè±¸»ò¶¨Ê±Æ÷µÈµÄÊÂ¼þ£¬ÄÜÈ·±£ÆäËûÉè±¸»ò¶¨Ê±Æ÷ÊÂ¼þÄÜÍ¨¹ýÆäËûworker¹¤×÷Ïß³Ì½øÐÐ¼°Ê±ÓÐÐ§µÄ´¦Àí¡£
 
-    * ÕâÖÖÄ£ÐÍµÄºÃ´¦ÊÇ¿ÉÒÔÒ»¶¨³Ì¶ÈºÜºÃµØ½â¾öÁËÂýÒµÎñÀàÓ¦ÓÃµÄÐèÇó£¬Í¬Ê±·Ç³£¸ßÐ§µØÀûÓÃ¶àºËCPUµÄ²¢ÐÐ¼ÆËã´¦ÀíÄÜÁ¦¡£
+* ÕâÖÖÄ£ÐÍµÄºÃ´¦ÊÇ¿ÉÒÔÒ»¶¨³Ì¶ÈºÜºÃµØ½â¾öÁËÂýÒµÎñÀàÓ¦ÓÃµÄÐèÇó£¬Í¬Ê±·Ç³£¸ßÐ§µØÀûÓÃ¶àºËCPUµÄ²¢ÐÐ¼ÆËã´¦ÀíÄÜÁ¦¡£
 
-    * Ê¹ÓÃePump¿ò¼ÜµÄ¸´ºÏÒµÎñÄ£ÐÍÊ±£¬Ïß³Ì×ÜÊý½¨ÒéÎªCPUµÄCore ProcessorµÄÊýÁ¿£¬ÆäÖÐePumpÏß³ÌÊýÁ¿ÎªCPU Core×ÜÊýµÄ10-20%£¬workerÏß³ÌÊýÁ¿ÎªCPU Core×ÜÊýµÄ80-90%¡£Æ©ÈçCPUÎª32ºËµÄ·þÎñÆ÷£¬ÔËÐÐePump¼Ü¹¹¿ª·¢µÄ³ÌÐòÊ±£¬ePumpÏß³ÌÊýÅäÖÃÎª3-6¸ö£¬worker¹¤×÷Ïß³ÌÊýÅäÖÃÎª26-29¸ö¡£
+* Ê¹ÓÃePump¿ò¼ÜµÄ¸´ºÏÒµÎñÄ£ÐÍÊ±£¬Ïß³Ì×ÜÊý½¨ÒéÎªCPUµÄCore ProcessorµÄÊýÁ¿£¬ÆäÖÐePumpÏß³ÌÊýÁ¿ÎªCPU Core×ÜÊýµÄ10-20%£¬workerÏß³ÌÊýÁ¿ÎªCPU Core×ÜÊýµÄ80-90%¡£Æ©ÈçCPUÎª32ºËµÄ·þÎñÆ÷£¬ÔËÐÐePump¼Ü¹¹¿ª·¢µÄ³ÌÐòÊ±£¬ePumpÏß³ÌÊýÅäÖÃÎª3-6¸ö£¬worker¹¤×÷Ïß³ÌÊýÅäÖÃÎª26-29¸ö¡£
 
  
-ePump¿ò¼ÜÖÐµÄÎÄ¼þÃèÊö·ûFD
+Îå. ePump¿ò¼ÜÖÐµÄÎÄ¼þÃèÊö·ûFD
 ------
  
 ÔÚUnix¡¢Linux²Ù×÷ÏµÍ³ÖÐ£¬½«Ò»ÇÐÓëI/O¶ÁÐ´Ïà¹ØµÄÎïÀíÉè±¸»òÐéÄâÉè±¸¶¼¿´×÷ÊÇÎÄ¼þ£¬°üÀ¨ÆÕÍ¨ÎÄ¼þ£¬Ä¿Â¼£¬×Ö·ûÉè±¸ÎÄ¼þ£¨Èç¼üÅÌ¡¢Êó±ê£©£¬¿éÉè±¸ÎÄ¼þ£¨ÈçÓ²ÅÌ¡¢¹âÇý£©£¬ÍøÂçÌ×½Ó×ÖSocketµÈ£¬¾ù³éÏó³ÉÎÄ¼þ¡£ÎÄ¼þÃèÊö·ûÊÇ²Ù×÷ÏµÍ³ÄÚºËkernel¹ÜÀí±»´ò¿ªµÄÎÄ¼þ½á¹¹¶ø·ÖÅäµÄË÷Òý£¬ÊÇÒ»¸öÕûÐÍÊýÖµ¡£ÄÚºËÎªÃ¿¸ö½ø³ÌÎ¬»¤Ò»¸öÎÄ¼þÃèÊö±í£¬Õë¶Ô¸Ã±íµÄË÷Òý¼´ÎÄ¼þÃèÊö·ûfd´Ó0¿ªÊ¼£¬0Îª±ê×¼ÊäÈë£¬1Îª±ê×¼Êä³ö£¬2Îª±ê×¼´íÎóÊä³ö¡£ÔÚ½ø³ÌÖÐ´ò¿ªµÄÃ¿¸öÎÄ¼þ£¬¶¼»á·ÖÅäÒ»¸öÎÄ¼þÃèÊö·ûfd£¬À´¶ÔÓ¦µ½¸Ã½ø³ÌµÄÎÄ¼þÃèÊö±íÄ³¸öË÷ÒýÏîÖÐ£¬Í¨¹ýfdÀ´¶ÁÐ´ºÍ·ÃÎÊÎÄ¼þ¡£
@@ -157,7 +157,7 @@ ePump¿ò¼Ü¶ÔÎÄ¼þÃèÊö·û½øÐÐÁË·â×°£¬²ÉÓÃiodev_tÊý¾Ý½á¹¹À´¹ÜÀíÃ¿Ò»¸öÎÄ¼þÃèÊö·û£¬½«ÎÄ
 »ùÓÚÎÄ¼þÃèÊö·û¹¹½¨µÄiodev_tÉè±¸ÊÇePump¿ò¼Ü×î»ù´¡µÄÎïÀíÉèÊ©£¬±¾ÖÊÉÏËµ£¬ePump¾ÍÊÇÒ»¸ö¹ÜÀíÎÄ¼þÃèÊö·ûµÄÏµÍ³¡£ÎÄ¼þÃèÊö·û²úÉúµÄÊÂ¼þ¾ÍÏñÑªÒºÒ»ÑùÇý¶¯ÔË×ªÕû¸öePump¿ò¼Ü¡£
 
 
-ePump¿ò¼ÜµÄ»Øµ÷£¨Call Back£©»úÖÆ
+Áù. ePump¿ò¼ÜµÄ»Øµ÷£¨Call Back£©»úÖÆ
 ------
  
 ¸ù¾ÝÒµÎñÂß¼­£¬Èí¼þÄ£¿éÒ»°ã²ÉÓÃ·Ö²ãÄ£ÐÍ£¬²»Í¬µÄÄ£¿éÖ®¼äÒ»°ãÍ¨¹ýº¯Êý½Ó¿ÚÀ´Ïà»¥µ÷ÓÃ£¬µ«ÔÚ·Ö²ãÂß¼­ÖÐÏÂ²ãÄ£
@@ -213,31 +213,31 @@ ePump¿ò¼ÜÌá¹©µÄ¹¦ÄÜ½Ó¿Úº¯Êýº­¸ÇÁËTCP¡¢UDP¡¢Unix SocketµÈÍ¨ÐÅÉèÊ©Ëù²úÉúµÄÎÄ¼þÃèÊö
 ÒÔÀ©Õ¹µ½ÈÎÒâÎÄ¼þÃèÊö·ûFD¶¼¿ÉÒÔ¼ÓÈëµ½ePump¼Ü¹¹ÖÐ½øÐÐ¹ÜÀíºÍÊÂ¼þÇý¶¯¡£
  
 
-ePump¿ò¼ÜµÄµ÷¶È£¨Scheduling£©»úÖÆ
+Æß. ePump¿ò¼ÜµÄµ÷¶È£¨Scheduling£©»úÖÆ
 ------
  
 µ÷¶È£¨scheduling£©ÊÇ°´ÕÕÒ»¶¨µÄ»úÖÆºÍËã·¨¶ÔÏà¹Ø×ÊÔ´½øÐÐ·ÖÅäµÄ¹ý³Ì£¬ePump¿ò¼ÜµÄ×ÊÔ´Ö÷ÒªÊÇiodev_tÉè±¸¡¢iodev_t¶¨Ê±Æ÷¡¢ioevent_tÊÂ¼þ¡¢ePumpÏß³Ì¡¢worker¹¤×÷Ïß³Ì£¬µ÷¶È»úÖÆÒ²ÊÇÎ§ÈÆÕâÐ©×ÊÔ´µÄ·ÖÅÉÀ´Éè¼Æ¡£
 
-### iodev_tÉè±¸°ó¶¨ePumpÏß³Ì
+### 7.1 iodev_tÉè±¸°ó¶¨ePumpÏß³Ì
 
 Í¨¹ý¸÷ÖÖÓ¦ÓÃ½Ó¿Ú´´½¨iodev_tÉè±¸ºó£¬ÐèÒªÑ¡ÔñÒ»¸öePumpÏß³ÌÀ´Ö´ÐÐ¸ÃÉè±¸µÄ¼àÌýºÍ¾ÍÐ÷Í¨Öª£¨Readiness Notification£©£¬²¢½«µ±Ç°iodev_tÉè±¸ºÍÑ¡ÔñµÄePumpÏß³Ì½¨Á¢°ó¶¨¹ØÏµ£¬ÓÐ°ó¶¨µÄePumpÏß³ÌÀ´¼àÌýºÍ²úÉú¸÷ÖÖR/WÊÂ¼þ¡£ÈçºÎ·ÖÅäePumpÏß³ÌÐèÒªÈ¡¾öÓÚiodev_tµÄÉè±¸ÀàÐÍºÍ°ó¶¨ÀàÐÍ¡£
 
-* **Listen·þÎñ¶Ë¿ÚÀàµÄiodev_tÉè±¸¡£** 
+####  7.1.1 Listen·þÎñ¶Ë¿ÚÀàµÄiodev_tÉè±¸
     ÐèÒªËùÓÐePumpÏß³Ì¶¼°ó¶¨¸Ãiodev_tÉè±¸£¬»ò¶ÔÓÚÖ§³ÖSO_REUSEPORT SocketÑ¡ÏîµÄ²Ù×÷ÏµÍ³£¬ÐèÒªÎªÃ¿Ò»¸öePumpÏß³ÌÔÚÍ¬Ò»¸öÖ÷»ú¡¢Í¬Ò»¸öListen¶Ë¿ÚÉÏ´´½¨¶à¸öiodev_t ListenÉè±¸£¬²¢°ó¶¨µ½¸ÃePumpÏß³ÌÖÐ¡£ÕâÑù×öµÄÄ¿µÄÊÇÈ·±£µ±ÓÐ¿Í»§¶ËÍøÂçÁ¬½ÓÇëÇóÊ±£¬ËùÓÐePumpÏß³Ì¶¼ÄÜ¾ùºâµØÆ½·Ö¸ºÔØ¡£µ±È»£¬¶ÔÓÚLinuxÄÚºË°æ±¾µÍÓÚ3.9.xµÄÏµÍ³£¬¿ÉÄÜ´æÔÚ¾ªÈºÐ§Ó¦£¬ÈçºÎ´¦ÀíÇë²Î¼ûºóÃæÕÂ½Ú¡£
 
-* **·ÇListenµÄiodev_tÉè±¸¡£** 
-    * **Ö¸¶¨ePumpÏß³Ì**
-        ¸ù¾Ýµ÷ÓÃ²ÎÊýÖ¸¶¨µÄePumpÏß³ÌÀ´½¨Á¢°ó¶¨¹ØÏµ¡£
-    * **¸ù¾ÝePumpÏß³ÌµÄ×îµÍ¸ºÔØ**
-        ePumpµÄ¸ºÔØÖ÷ÒªÊÇ¸ÃÏß³Ì°ó¶¨µÄiodev_tÉè±¸ÊýÁ¿¡¢iotimer_t¶¨Ê±Æ÷ÊýÁ¿¡¢¸ÃÏß³Ì×î½üµ¥Î»Ê±¼äÄÚ²úÉúµÄioevent_tÊýÁ¿µÈÖ¸±êÀ´ºâÁ¿£¬Ñ¡Ôñ×îµÍ¸ºÔØµÄePumpÏß³Ì£¬¿ÉÒÔÈÃ¸ºÔØ¾ùºâµØ·ÖÌ¯µ½¸÷¸öePumpÏß³ÌÖÐ£¬´ÓÌáÉýÏµÍ³¹¤×÷Ð§ÂÊ¡£
+#### 7.1.2 ·ÇListenµÄiodev_tÉè±¸
+* **Ö¸¶¨ePumpÏß³Ì**
+    ¸ù¾Ýµ÷ÓÃ²ÎÊýÖ¸¶¨µÄePumpÏß³ÌÀ´½¨Á¢°ó¶¨¹ØÏµ¡£
+* **¸ù¾ÝePumpÏß³ÌµÄ×îµÍ¸ºÔØ**
+    ePumpµÄ¸ºÔØÖ÷ÒªÊÇ¸ÃÏß³Ì°ó¶¨µÄiodev_tÉè±¸ÊýÁ¿¡¢iotimer_t¶¨Ê±Æ÷ÊýÁ¿¡¢¸ÃÏß³Ì×î½üµ¥Î»Ê±¼äÄÚ²úÉúµÄioevent_tÊýÁ¿µÈÖ¸±êÀ´ºâÁ¿£¬Ñ¡Ôñ×îµÍ¸ºÔØµÄePumpÏß³Ì£¬¿ÉÒÔÈÃ¸ºÔØ¾ùºâµØ·ÖÌ¯µ½¸÷¸öePumpÏß³ÌÖÐ£¬´ÓÌáÉýÏµÍ³¹¤×÷Ð§ÂÊ¡£
 
-### iotimer_t¶¨Ê±Æ÷
+### 7.2 iotimer_t¶¨Ê±Æ÷
 
 Ó¦ÓÃ³ÌÐòÆô¶¯iotimer_t¶¨Ê±Æ÷Ê±£¬ePump¿ò¼ÜÒ»°ã¸ù¾ÝePumpÏß³ÌµÄµ±Ç°¸ºÔØ£¬Ñ¡Ôñ¸ºÔØ×îµÍµÄePumpÏß³ÌÀ´°ó¶¨£¬ÓÉ°ó¶¨µÄePumpÏß³ÌÀ´¹ÜÀíºÍ¼à¿Ø£¬²¢¸ºÔð²úÉú³¬Ê±ÊÂ¼þ¡£
 
 °ó¶¨ePumpÏß³ÌÒ»°ãÊÇ½«iotimer_t¶¨Ê±Æ÷¶ÔÏóÌí¼Óµ½¸ÃePumpÏß³ÌµÄ¹ÜÀí¶¨Ê±Æ÷ÁÐ±íµÄºìºÚÊ÷½á¹¹ÖÐ£¬Èç¹ûµ±Ç°ePumpÏß³Ì´¦ÓÚ×èÈû¹ÒÆð×´Ì¬£¬Í¨¹ý¼¤»î»úÖÆ»½ÐÑµ±Ç°ePumpÏß³Ì£¬²¢»ùÓÚ¶¨Ê±Æ÷Ê÷ÐÍ½á¹¹ÖÐÀëµ±Ç°Ê±¿Ì×î¶ÌÊ±³¤À´ÖØÐÂÆô¶¯ÏµÍ³µ÷ÓÃ¡£
 
-### ioevent_tÊÂ¼þ
+### 7.3 ioevent_tÊÂ¼þ
 
 ³ýÁËÓÃ»§ÊÂ¼þÍâ£¬»ù±¾ËùÓÐioevent_tÊÂ¼þ¶¼ÓÉePumpÏß³Ì²úÉú£¬µ±È»Ò²ÓÉePumpÏß³Ì¸ù¾ÝÏà¹Ø»úÖÆºÍËã·¨À´µ÷¶È£¬½«ÆäÅÉ·¢µ½worker¹¤×÷Ïß³Ì»òePumpÏß³ÌµÄFIFOÊÂ¼þ¶ÓÁÐÖÐ£¬½øÐÐÊÂ¼þ»Øµ÷º¯ÊýµÄµ÷ÓÃ´¦Àí¡£ioevent_tÊÂ¼þµÄÊÙÃüÖÜÆÚ½Ï¶Ì£¬¼´±»´´½¨¡¢±»·ÖÅÉµ½ÊÂ¼þ¶ÓÁÐ¡¢±»Ïß³ÌÖ´ÐÐÆä»Øµ÷º¯Êý¡¢Ö´ÐÐÍê±Ï£¬ÆäÊµÀý¶ÔÏó»á±»»ØÊÕ¶ø½áÊøÊÙÃü¡£
 
@@ -245,7 +245,7 @@ ioevent_tÊÂ¼þÒ»°ã¶¼°ó¶¨ÁËÄ³¸öiodev_tÉè±¸»òiotimer_t¶¨Ê±Æ÷£¬µ±Ç°ioevent_tÊÂ¼þÅÉ·¢
 
 Í¬Ò»¸öiodev_tÉè±¸Á¬Ðø²úÉúµÄ»ù±¾ÏàÍ¬µÄioevent_tÊÂ¼þÔò»á±»µ÷¶È»úÖÆÅ×Æú¡£
 
-### ePumpÏß³Ì
+### 7.4 ePumpÏß³Ì
 
 ePumpÏß³ÌÊÇePump¿ò¼ÜµÄºËÐÄÉèÊ©£¬¸ºÔð¶Ôiodev_tÉè±¸ÁÐ±íºÍiotimer_t¶¨Ê±Æ÷ÁÐ±í½øÐÐ¹ÜÀí£¬Í¨¹ýepoll_wait»òselectµÈÏµÍ³µ÷ÓÃ£¬×èÈûµÈ´ýÉè±¸R/W¾ÍÐ÷Í¨Öª»ò¶¨Ê±Æ÷³¬Ê±£¬²¢²úÉúioevent_tÊÂ¼þ£¬¸ºÔð¶ÔÕâÐ©ÊÂ¼þ½øÐÐµ÷¶ÈÅÉ·¢¡£
 
@@ -255,19 +255,19 @@ ePumpÏß³ÌÊÇePump¿ò¼ÜµÄºËÐÄÉèÊ©£¬¸ºÔð¶Ôiodev_tÉè±¸ÁÐ±íºÍiotimer_t¶¨Ê±Æ÷ÁÐ±í½øÐÐ¹Ü
 
 ePumpÏß³Ìµ÷¶ÈÅÉ·¢ioevent_tÊÂ¼þµÄËã·¨Á÷³ÌÈçÏÂ£º
 
-* 1. ÊÂ¼þµ÷¶ÈµÄ»ù´¡Ëã·¨ÊÇµÍ¸ºÔØÓÅÏÈËã·¨£¬¼´Ñ¡Ôñµ±Ç°¸ºÔØ×îµÍµÄworker¹¤×÷Ïß³Ì£¬²¢½«ÊÂ¼þÅÉ·¢µ½¸ÃÏß³ÌµÄÊÂ¼þ¶ÓÁÐÖÐ¡£
+* ÊÂ¼þµ÷¶ÈµÄ»ù´¡Ëã·¨ÊÇµÍ¸ºÔØÓÅÏÈËã·¨£¬¼´Ñ¡Ôñµ±Ç°¸ºÔØ×îµÍµÄworker¹¤×÷Ïß³Ì£¬²¢½«ÊÂ¼þÅÉ·¢µ½¸ÃÏß³ÌµÄÊÂ¼þ¶ÓÁÐÖÐ¡£
 
-* 2. ¶ÔÓÚÍ¬Ò»¸öiodev_tÉè±¸²úÉúµÄºóÐøËùÓÐioevent_tÊÂ¼þ£¬¶¼»áÒÔpipeline·½Ê½µ÷¶Èµ½Í¬Ò»¸öworkerÏß³ÌÖÐ¡£
+* ¶ÔÓÚÍ¬Ò»¸öiodev_tÉè±¸²úÉúµÄºóÐøËùÓÐioevent_tÊÂ¼þ£¬¶¼»áÒÔpipeline·½Ê½µ÷¶Èµ½Í¬Ò»¸öworkerÏß³ÌÖÐ¡£
 
-* 3. ¶ÔÓÚÍ¬Ò»¸öiodev_tÉè±¸Á¬Ðø²úÉúµÄÍ¬Ò»ÀàÐÍµÄioevent_tÊÂ¼þ£¬Èç¹û»¹ÔÚÍ¬Ò»¸öworker¹¤×÷Ïß³ÌµÄFIFOÊÂ¼þ¶ÓÁÐÖÐ£¬ÉÐÎ´±»È¡×ßÖ´ÐÐ£¬ÄÇÃ´ºóÐøµÄÕâÑùÍ¬Éè±¸Í¬ÀàÐÍÊÂ¼þ¾Í»á±»Å×Æú¡£
+* ¶ÔÓÚÍ¬Ò»¸öiodev_tÉè±¸Á¬Ðø²úÉúµÄÍ¬Ò»ÀàÐÍµÄioevent_tÊÂ¼þ£¬Èç¹û»¹ÔÚÍ¬Ò»¸öworker¹¤×÷Ïß³ÌµÄFIFOÊÂ¼þ¶ÓÁÐÖÐ£¬ÉÐÎ´±»È¡×ßÖ´ÐÐ£¬ÄÇÃ´ºóÐøµÄÕâÑùÍ¬Éè±¸Í¬ÀàÐÍÊÂ¼þ¾Í»á±»Å×Æú¡£
 
-* 4. ÓÉÄÄ¸öworkerÏß³ÌÆô¶¯µÄiotimer_t¶¨Ê±Æ÷£¬Æä³¬Ê±ÊÂ¼þ×îÖÕÈÔÈ»ÓÉ¸Ãworker¹¤×÷Ïß³Ì´¦Àí¡£
+* ÓÉÄÄ¸öworkerÏß³ÌÆô¶¯µÄiotimer_t¶¨Ê±Æ÷£¬Æä³¬Ê±ÊÂ¼þ×îÖÕÈÔÈ»ÓÉ¸Ãworker¹¤×÷Ïß³Ì´¦Àí¡£
 
-* 5. Èç¹ûePump¿ò¼ÜÖÐÃ»ÓÐÆô¶¯worker¹¤×÷Ïß³Ì£¬ÔòÑ¡Ôñµ±Ç°¸ºÔØ×îµÍµÄePumpÏß³Ì£¬²¢½«ÊÂ¼þÅÉ·¢µ½¸ÃÏß³ÌµÄÊÂ¼þ¶ÓÁÐ¡£
+* Èç¹ûePump¿ò¼ÜÖÐÃ»ÓÐÆô¶¯worker¹¤×÷Ïß³Ì£¬ÔòÑ¡Ôñµ±Ç°¸ºÔØ×îµÍµÄePumpÏß³Ì£¬²¢½«ÊÂ¼þÅÉ·¢µ½¸ÃÏß³ÌµÄÊÂ¼þ¶ÓÁÐ¡£
 
 ¶ÔÓÚ´ó¹æÄ£¼´Ê±ÏûÏ¢Í¨ÐÅÏµÍ³£¬µ¥Ì¨·þÎñÆ÷¿ÉÄÜ»áÍ¬Ê±Î¬³Ö30ÍòÉõÖÁ¸ü´ó¹æÄ£µÄTCP²¢·¢Á¬½Ó£¬Ã¿¸öÁ¬½ÓËæÊ±»á²úÉú¶ÁÐ´ÊÂ¼þ½øÐÐÊý¾ÝÊÕ·¢´¦Àí²Ù×÷¡£ePump¿ò¼ÜµÄ¶à¸öePumpÏß³Ì¿ÉÒÔ¾ùºâ·Ö²¼Ê½µØ·Öµ£30Íò¸öiodev_tÉè±¸£¬ÕâÐ©Éè±¸²úÉúµÄÊÂ¼þ£¬Ò²ºÜ¿ìµØ¾ùºâµ÷¶Èµ½¸÷¸öworker¹¤×÷Ïß³ÌÖÐ£¬Ã»ÓÐ¹²ÏíËøÔì³ÉµÄ³åÍ»£¬ÏàÍ¬Éè±¸²úÉúµÄÊÂ¼þ¶¼ÒÔpipeline·½Ê½ÔÚÍ¬Ò»¸öÏß³Ì´¦Àí£¬¹æ±ÜÁË¶àÏß³ÌÕùÇÀÉè±¸×ÊÔ´µÄ³åÍ»·ÃÎÊÎÊÌâ£¬Ò²»Ø±ÜÁËÒ»¸öÏß³Ì¹Ø±ÕÊÍ·ÅÁËiodev_tÉè±¸×ÊÔ´¡¢ÁíÍâÒ»¸öÏß³Ì»¹ÔÚÊ¹ÓÃ¸Ã×ÊÔ´µÄÒì³£¹ÊÕÏÎÊÌâ¡£
 
-### worker¹¤×÷Ïß³Ì
+### 7.5 worker¹¤×÷Ïß³Ì
 
 ePump¿ò¼ÜÖÐ£¬worker¹¤×÷Ïß³ÌÊÇ´¦Àíioevent_tÊÂ¼þµÄÖ÷ÒªÔØÌå£¬»ù±¾Á÷³ÌÊÇÑ­»·µØÌáÈ¡FIFOÊÂ¼þ¶ÓÁÐÖÐµÄÊÂ¼þ£¬Ö´ÐÐ¸ÃÊÂ¼þÖÐµÄ»Øµ÷º¯Êý£¬´¦ÀíÍêºóÊÍ·Å¸Ãioevent_tÊÂ¼þ¶ÔÏó£¬¼ÌÐø¶ÁÈ¡ÏÂÒ»¸öioevent_tÊÂ¼þ½øÐÐ´¦Àí£¬Ö±µ½´¦ÀíÍêÈ«²¿ÊÂ¼þºó£¬Í¨¹ýÒì²½Í¨ÖªµÄÌõ¼þ±äÁ¿½øÐÐ×èÈûµÈ´ýÐÂÊÂ¼þµÄµ½À´¡£
 
@@ -282,22 +282,22 @@ worker¹¤×÷Ïß³ÌµÄÊµÊ±¸ºÔØÊÇePumpµ÷¶ÈËã·¨µÄÖ÷Òª±äÁ¿£¬¸ºÔØµÄ¼ÆËãÒÀÀµÓÚÈçÏÂ¼¸¸öÒò×Ó£
 ePumpÏß³ÌµÄÊÂ¼þµ÷¶ÈÅÉ·¢»úÖÆÖ÷ÒªÒÀÀµÓÚ¹¤×÷Ïß³ÌµÄ¸ºÔØ£¬¼´µÍ¸ºÔØÓÅÏÈËã·¨¡£ÔËÓÃÕâÖÖËã·¨µÄ×îÖÕ½á¹ûÊÇ¶à¸ö¹¤×÷Ïß³ÌÖÕ½«Æ½ºâµØ³Ðµ£ÏµÍ³ÖÐµÄËùÓÐ´¦ÀíÈÎÎñ¡£
  
 
-ePump¿ò¼ÜÖÐ¾ªÈºÐ§Ó¦µÄ´¦Àí»úÖÆ
+°Ë. ePump¿ò¼ÜÖÐ¾ªÈºÐ§Ó¦µÄ´¦Àí»úÖÆ
 ------
 
-### ¾ªÈºÐ§Ó¦£¨Thundering Herd Problem£©
+### 8.1 ¾ªÈºÐ§Ó¦£¨Thundering Herd Problem£©
 
 ¾ªÈºÐ§Ó¦ÊÇÖ¸¶à½ø³Ì£¨¶àÏß³Ì£©ÔÚÍ¬Ê±×èÈûµÈ´ýÍ¬Ò»¸öÊÂ¼þµÄÊ±ºò£¨ÐÝÃß×´Ì¬£©£¬Èç¹ûµÈ´ýµÄÕâ¸öÊÂ¼þ·¢Éú£¬ÄÇÃ´Ëû¾Í»á»½ÐÑµÈ´ýµÄËùÓÐ½ø³Ì£¨»òÕßÏß³Ì£©£¬µ«ÊÇ×îÖÕÈ´Ö»ÄÜÓÐÒ»¸ö½ø³Ì£¨Ïß³Ì£©»ñµÃÕâ¸öÊ±¼äµÄ¡°¿ØÖÆÈ¨¡±£¬¶Ô¸ÃÊÂ¼þ½øÐÐ´¦Àí£¬¶øÆäËû½ø³Ì£¨Ïß³Ì£©»ñÈ¡¡°¿ØÖÆÈ¨¡±Ê§°Ü£¬Ö»ÄÜÖØÐÂ½øÈëÐÝÃß×´Ì¬£¬ÕâÖÖÏÖÏóºÍÐÔÄÜÀË·Ñ¾Í½Ð×ö¾ªÈºÐ§Ó¦¡£
  
-### ¾ªÈºÐ§Ó¦ÏûºÄÊ²Ã´£¿
+### 8.2 ¾ªÈºÐ§Ó¦ÏûºÄÊ²Ã´£¿
  
 ²Ù×÷ÏµÍ³ÄÚºË¶ÔÓÃ»§½ø³Ì£¨Ïß³Ì£©Æµ·±µØ×öÎÞÐ§µÄµ÷¶È¡¢ÉÏÏÂÎÄÇÐ»»µÈÈÎÎñ£¬»áÊ¹ÏµÍ³ÐÔÄÜ´ó´òÕÛ¿Û¡£ÉÏÏÂÎÄÇÐ»»£¨context switch£©¹ý¸ß»áµ¼ÖÂ CPU Æµ·±µØÔÚ¼Ä´æÆ÷ºÍÔËÐÐ¶ÓÁÐÖ®¼ä±¼²¨£¬¸ü¶àµÄÊ±¼ä»¨ÔÚÁË½ø³Ì£¨Ïß³Ì£©ÇÐ»»£¬¶ø²»ÊÇÔÚÕæÕý¹¤×÷µÄ½ø³Ì£¨Ïß³Ì£©ÉÏÃæ¡£Ö±½ÓµÄÏûºÄ°üÀ¨ CPU ¼Ä´æÆ÷Òª±£´æºÍ¼ÓÔØ£¨ÀýÈç³ÌÐò¼ÆÊýÆ÷£©¡¢ÏµÍ³µ÷¶ÈÆ÷µÄ´úÂëÐèÒªÖ´ÐÐ¡£¼ä½ÓµÄÏûºÄÔÚÓÚ¶àºË cache Ö®¼äµÄ¹²ÏíÊý¾Ý¡£
 
-### ePump¿ò¼ÜÖÐ´æÔÚµÄ¾ªÈºÎÊÌâ
+### 8.3 ePump¿ò¼ÜÖÐ´æÔÚµÄ¾ªÈºÎÊÌâ
 
 ²»Ïñlibevent¿ò¼ÜÃ»ÓÐÉè¼Æ½ø³Ì»òÏß³Ì£¬Ö»¶¨ÒåÁË½Ó¿Úµ÷ÓÃ£¬½«½ø³ÌºÍÏß³ÌµÄÊ¹ÓÃ½»¸øÁËÓ¦ÓÃ³ÌÐòÀ´´¦Àí¡£ePump¿ò¼Ü²ÉÓÃÁË¶àÏß³Ì£¨Î´À´°æ±¾½«Ö§³Ö¶à½ø³Ì£©À´²úÉúºÍ´¦Àí¸÷ÖÖÊÂ¼þ¡£Ê¹ÓÃ¶à½ø³Ì»ò¶àÏß³ÌµÄÏµÍ³£¬ÓÉÓÚÕùÇÀ¹²Í¬×ÊÔ´£¬¶àÉÙ¶¼»á´æÔÚ½ø³Ì»òÏß³ÌµÄ¾ªÈºÎÊÌâ¡£
 
-#### Ò». workerÏß³Ì×é²»´æÔÚ¾ªÈºÎÊÌâ
+#### 8.3.1 workerÏß³Ì×é²»´æÔÚ¾ªÈºÎÊÌâ
 
 ePump¿ò¼ÜÖÐ£¬ÎªÃ¿¸öworker¹¤×÷Ïß³Ìµ¥¶ÀÉè¼ÆÁË½ÓÊÕºÍ´¦ÀíÊÂ¼þµÄFIFO¶ÓÁÐ£¬µ¥¸öworker¹¤×÷Ïß³ÌÔÚÃ»ÓÐÊÂ¼þ´¦ÀíÊ±£¬×èÈû¹ÒÆð²¢µÈºòFIFO¶ÓÁÐµÄÌõ¼þ±äÁ¿ÄÚºË¶ÔÏóÉÏ£¬Ö±ÖÁÓÐÐÂÊÂ¼þÌí¼Óµ½FIFO¶ÓÁÐºó£¬±»Ìõ¼þ±äÁ¿ÄÚºË¶ÔÏó»½ÐÑ¡£
 
@@ -305,7 +305,7 @@ workerÏß³Ì×éÃ»ÓÐ¹²ÏíÒ»¸ö´óFIFOÊÂ¼þ¶ÓÁÐ£¬ÕâÑùÐÂÌí¼ÓµÄÊÂ¼þ²¢²»»á»½ÐÑËùÓÐ´¦ÓÚÐÝÃßµÄ
 
 ÕâÖÖ·½Ê½³¹µ×¹æ±ÜÁËworkerÏß³Ì×éµÄ¾ªÈºÐ§Ó¦£¬ÌáÉýÁËÏµÍ³µ÷¶ÈÐ§ÂÊºÍCPUµÄÀûÓÃÂÊ¡£
 
-#### ¶þ. ePumpÏß³Ì×éµÄ¾ªÈºÎÊÌâ
+#### 8.3.2 ePumpÏß³Ì×éµÄ¾ªÈºÎÊÌâ
 
 ePump¿ò¼ÜÖÐµÄePumpÏß³Ì¶¼×èÈû¹ÒÆðÔÚI/OÊÂ¼þÍ¨ÖªµÄÏµÍ³µ÷ÓÃÉÏ£¬Èçselect¡¢poll¡¢epoll_waitµÈ£¬µÈºòÎÄ¼þÃèÊö·ûµÄR/W¾ÍÐ÷×´Ì¬£¬»òµÈ´ý¶¨Ê±Ê±¼ä³¬Ê±£¬´¦ÓÚ×èÈû¹ÒÆð×´Ì¬µÄePumpÏß³Ì£¬±»»½ÐÑµÄÌõ¼þÖ»ÓÐÁ½Àà£º  
 * Ò»ÊÇÎÄ¼þÃèÊö·û¿É¶Á£¨readable£©»ò¿ÉÐ´£¨writable£©
@@ -330,13 +330,13 @@ ePump¿ò¼ÜÖÐÈ·Êµ´æÔÚÒ»ÖÖiodev_tÉè±¸ÀàÐÍ£¬¾ÍÊÇ¼àÌýÄ³¸ö·þÎñ¶Ë¿ÚµÄListenÉè±¸£¬ÈçÓÃTC
     * ÕâÖÖÇé¿ö¾ÍÊÇµäÐÍµÄ¾ªÈºÐ§Ó¦¡£
 
 
-#### Èý. ¹æ±Ü»òÈõ»¯ePump¿ò¼Ü¾ªÈºÎÊÌâµÄ´ëÊ©
+#### 8.3.3 ¹æ±Ü»òÈõ»¯ePump¿ò¼Ü¾ªÈºÎÊÌâµÄ´ëÊ©
 
-* 1. ¾¡Á¿Ê¹ÓÃÖ§³ÖSO_REUSEPORTÑ¡ÏîµÄOS°æ±¾¡£Ö§³ÖSO_REUSEPORTÑ¡ÏîµÄ²Ù×÷ÏµÍ³£¬»á³¹µ×½â¾öePumpÏß³Ì×éµÄ¾ªÈºÎÊÌâ¡£
-* 2. ¾¡Á¿Ê¹ÓÃePump¿ò¼ÜµÄ¸´ºÏÒµÎñÄ£ÐÍ£¬¼´ePumpÏß³ÌÊýÁ¿½ÏÉÙ£¬worker¹¤×÷Ïß³ÌÊýÁ¿½Ï¶à£¬µ±¼àÌý¶Ë¿ÚÓÐ¶ÁÐ´ÇëÇóÊ±£¬ePumpÏß³ÌÊýÁ¿Ô½ÉÙ£¬¾ªÈºÎÊÌâµÄ¸ºÃæÐ§¹ûÒ²¾ÍÔ½µÍ£¬µ±È»ÕâÐèÒªÔÚ´¦ÀíÓÃ»§²¢·¢ÇëÇóÖ®¼äÑ°ÕÒÆ½ºâ¡£
+* ¾¡Á¿Ê¹ÓÃÖ§³ÖSO_REUSEPORTÑ¡ÏîµÄOS°æ±¾¡£Ö§³ÖSO_REUSEPORTÑ¡ÏîµÄ²Ù×÷ÏµÍ³£¬»á³¹µ×½â¾öePumpÏß³Ì×éµÄ¾ªÈºÎÊÌâ¡£
+* ¾¡Á¿Ê¹ÓÃePump¿ò¼ÜµÄ¸´ºÏÒµÎñÄ£ÐÍ£¬¼´ePumpÏß³ÌÊýÁ¿½ÏÉÙ£¬worker¹¤×÷Ïß³ÌÊýÁ¿½Ï¶à£¬µ±¼àÌý¶Ë¿ÚÓÐ¶ÁÐ´ÇëÇóÊ±£¬ePumpÏß³ÌÊýÁ¿Ô½ÉÙ£¬¾ªÈºÎÊÌâµÄ¸ºÃæÐ§¹ûÒ²¾ÍÔ½µÍ£¬µ±È»ÕâÐèÒªÔÚ´¦ÀíÓÃ»§²¢·¢ÇëÇóÖ®¼äÑ°ÕÒÆ½ºâ¡£
 
 
-How to build ePump
+¾Å. How to build ePump
 ------
 
 The framework ePump can run on most Unix-like system and Windows OS, especially work better on Linux.
@@ -347,7 +347,7 @@ If you get the copy of ePump package on Unix-like system and find the configure 
 $ make && make install
 ```
 
-How to integrate
+Ê®. How to integrate
 ------
 
 The new generated ePump libraries will be installed into the default directory /usr/local/lib, and the header file epump.h is copied to the location /usr/local/include.
@@ -362,7 +362,7 @@ Please refer to the test program for your coding. Further tutorial or documentat
 Hope you enjoy it!
 
 
-ePump¿ò¼ÜÏà¹ØµÄÁíÍâÁ½¸ö¿ªÔ´ÏîÄ¿
+Ê®Ò». ePump¿ò¼ÜÏà¹ØµÄÁíÍâÁ½¸ö¿ªÔ´ÏîÄ¿
 ------
  
 ### adif ÏîÄ¿
@@ -376,10 +376,10 @@ ePump¿ò¼ÜÏîÄ¿ÒÀÀµÓÚ adif ÏîÄ¿Ìá¹©µÄ»ù´¡Êý¾Ý½á¹¹ºÍËã·¨¿â¡£adif ÊÇÓÃ±ê×¼ c ÓïÑÔ¿ª·
  
 ***
  
-¹ØÓÚ×÷Õß ÀÏ¿Â (laoke)
+Ê®¶þ. ¹ØÓÚ×÷Õß ÀÏ¿Â (laoke)
 ------
 
-ÓÐ´óÁ¿LinuxµÈÏµÍ³ÉÏµÄÓ¦ÓÃÆ½Ì¨ºÍÍ¨ÐÅÏµÍ³¿ª·¢¾­Àú£¬ÊÇ×ÊÉî³ÌÐòÔ±¡¢¹¤³ÌÊ¦£¬·¢ÓÊ¼þkehengzhong@hotmail.com¿ÉÒÔÕÒµ½×÷Õß£¬»ò>ÕßÍ¨¹ýQQºÅÂë571527»òÎ¢ÐÅºÅbeijingkehz¸ø×÷ÕßÁôÑÔ¡£
+ÓÐ´óÁ¿LinuxµÈÏµÍ³ÉÏµÄÓ¦ÓÃÆ½Ì¨ºÍÍ¨ÐÅÏµÍ³¿ª·¢¾­Àú£¬ÊÇ×ÊÉî³ÌÐòÔ±¡¢¹¤³ÌÊ¦£¬·¢ÓÊ¼þkehengzhong@hotmail.com¿ÉÒÔÕÒµ½×÷Õß£¬»òÕßÍ¨¹ýQQºÅÂë571527»òÎ¢ÐÅºÅbeijingkehz¸ø×÷ÕßÁôÑÔ¡£
 
 ePump¿ò¼ÜÏîÄ¿ÊÇ×÷ÕßÈý¸ö¹ØÁª¿ªÔ´ÏîÄ¿µÄµÚ¶þ¸öÏîÄ¿£¬×÷Îª¸ßÐÔÄÜÏµÍ³Èí¼þ»ù´¡¿ò¼Ü£¬ÊÇ´óÁ¿ÏµÍ³ÑÐ·¢Êµ¼ùÖÐÌáÁ¶³öÀ´µÄ£¬Îª¿ª·¢´ó²¢·¢·þÎñÆ÷ÏµÍ³Ìá¹©¿ò¼ÜÖ§³Å¡£±¾ÏîÄ¿Ô´×ÔÓÚ2003Äê¿ª·¢Íê³ÉµÄeProbeÏîÄ¿£¬ÔÚÆä»ù´¡ÉÏ×öÁË´óÁ¿µÄÓÅ»¯£¬´úÂë±äµÃ¸ü¼Ó¼ò½à¸ßÐ§¡£
 
