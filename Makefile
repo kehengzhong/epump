@@ -197,8 +197,7 @@ uninstall:
 	cd $(INSTALL_LIB_PATH) && $(RM) $(PKG_SONAME_LIB) 
 	cd $(INSTALL_LIB_PATH) && $(RM) $(PKG_VERSO_LIB) 
 	cd $(INSTALL_LIB_PATH) && $(RM) $(PKG_A_LIB) 
-	$(RM) $(INSTALL_INC_PATH)/*
-	$(RM) -r $(INSTALL_INC_PATH)
+	$(RM) $(INSTALL_INC_PATH)/epump.h
 
 #################################################################
 #  Additional Rules
