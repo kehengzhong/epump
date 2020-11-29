@@ -17,6 +17,7 @@ void * eptcp_listen_create (void * vpcore, char * localip, int port, void * para
 {
     epcore_t * pcore = (epcore_t *)vpcore;
     iodev_t  * pdev = NULL;
+    sockopt_t  sockopt = {0};
  
     if (retval) *retval = -1;
     if (!pcore) return NULL;
@@ -27,13 +28,30 @@ void * eptcp_listen_create (void * vpcore, char * localip, int port, void * para
         return NULL;
     }
  
-    pdev->fd = tcp_listen(localip, port, NULL);
+    memset(&sockopt, 0, sizeof(sockopt));
+    sockopt.mask |= SOM_BACKLOG;
+    sockopt.backlog = 511;
+
+    sockopt.mask |= SOM_REUSEADDR;
+    sockopt.reuseaddr = 1;
+
+    sockopt.mask |= SOM_REUSEPORT;
+    sockopt.reuseport = 1;
+
+    sockopt.mask |= SOM_KEEPALIVE;
+    sockopt.keepalive = 1;
+
+    pdev->fd = tcp_listen(localip, port, &sockopt);
     if (pdev->fd == INVALID_SOCKET) {
         iodev_close(pdev);
         if (retval) *retval = -200;
         return NULL;
     }
  
+    pdev->reuseaddr = (sockopt.reuseaddr_ret == 0) ? 1 : 0;
+    pdev->reuseport = (sockopt.reuseport_ret == 0) ? 1 : 0;
+    pdev->keepalive = (sockopt.keepalive_ret == 0) ? 1 : 0;
+
     sock_nonblock_set(pdev->fd, 1);
  
     if (localip)
@@ -84,8 +102,6 @@ void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int *
     return pdev;
 }
  
-/* Note: only supported in Linux kernel with version >= 3.9.x */
-
 void * eptcp_mlisten (void * vpcore, char * localip, int port, void * para,
                       IOHandler * cb, void * cbpara)
 {

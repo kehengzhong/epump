@@ -174,16 +174,20 @@ void * mlisten_open  (void * epcore,  char * localip, int port, int fdtype,
                       void * para, IOHandler * cb, void * cbpara);
 int    mlisten_close (void * vmln);
 
+int    mlisten_port  (void * vmln);
+char * mlisten_lip   (void * vmln);
+
 
 void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int * retval,
                      IOHandler * cb, void * cbpara, int bindtype);
  
-/* Note: only supported in Linux kernel with version >= 3.9.x
-   create listen socket for every current running epump threads and 
-   future-started epump threads */
-int eptcp_mlisten (void * vpcore, char * localip, int port, void * para,
-                   IOHandler * cb, void * cbpara,
-                   void ** devar, int * devnum);
+/* Note: automatically detect if Linux kernel supported REUSEPORT. 
+   if supported, create listen socket for every current running epump threads
+   and future-started epump threads.
+   if not, create only one listen socket for all epump threads to bind. */
+
+void * eptcp_mlisten (void * vpcore, char * localip, int port, void * para,
+                      IOHandler * cb, void * cbpara);
 
 void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
                      IOHandler * cb, void * cbpara, int bindtype);
@@ -198,6 +202,9 @@ void * epudp_listen (void * vpcore, char * localip, int port,
  
 void * epudp_client (void * veps, char * localip, int port,
                      void * para, int * retval, IOHandler * cb, void * cbpara);
+
+void * epudp_mlisten (void * vpcore, char * localip, int port, void * para,
+                      IOHandler * cb, void * cbpara);
 
 
 void * epusock_connect (void * vpcore, char * sockname, void * para,

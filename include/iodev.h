@@ -93,6 +93,10 @@ typedef struct IODevice_ {
     unsigned    tcp_nodelay:2;
     unsigned    tcp_nopush:2;
 
+    unsigned    reuseaddr:1;
+    unsigned    reuseport:1;
+    unsigned    keepalive:1;
+
 } iodev_t, *iodev_p;
 
 

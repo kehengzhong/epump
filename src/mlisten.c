@@ -27,6 +27,7 @@ void * mlisten_alloc (char * localip, int port, int fdtype, void * para, IOHandl
         strncpy(mln->localip, localip, sizeof(mln->localip)-1);
 
     mln->port = port;
+    mln->reuseport = 0;
 
     mln->para = para;
     mln->cb = cb;
@@ -52,10 +53,16 @@ void mlisten_free (void * vmln)
 int mlisten_iodev_add (void * vmln, void * pdev)
 {
     mlisten_t * mln= (mlisten_t *)vmln;
+    int         i, num;
 
     if (!mln) return -1;
-
     if (!pdev) return -2;
+
+    num = arr_num(mln->devlist);
+    for (i = 0; i < num; i++) {
+        if (pdev == arr_value(mln->devlist, i))
+            return 0;
+    }
 
     return arr_push(mln->devlist, pdev);
 }
@@ -149,7 +156,7 @@ void * epcore_mlisten_del (void * epcore, void * vmln)
         iter = arr_value(pcore->glbmlisten_list, i);
         if (!iter || iter == mln) {
             arr_delete(pcore->glbmlisten_list, i);
-            i--;
+            i--; num--;
             if (iter) ret++;
             continue;
         }
@@ -183,12 +190,27 @@ int epcore_mlisten_create (void * epcore, void * vepump)
         if (!mln || mln->port <= 0 || mln->port >= 65535)
             continue;
  
+        /* if DO NOT support REUSEPORT, get one existing iodev to bind */
+        if (mln->reuseport == 0) {
+            pdev = arr_value(mln->devlist, 0);
+        } else {
+            pdev = NULL;
+        }
+
         if (mln->fdtype == FDT_LISTEN) {
-            pdev = eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                        &ret, mln->cb, mln->cbpara);
+            if (mln->reuseport || pdev == NULL) {
+                pdev = eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                                            &ret, mln->cb, mln->cbpara);
+                if (pdev && pdev->reuseport)
+                    mln->reuseport = 1;
+            }
         } else if (mln->fdtype == FDT_UDPSRV) {
-            pdev = epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                        &ret, mln->cb, mln->cbpara);
+            if (mln->reuseport || pdev == NULL) {
+                pdev = epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                                            &ret, mln->cb, mln->cbpara);
+                if (pdev && pdev->reuseport)
+                    mln->reuseport = 1;
+            }
         }
 
         if (!pdev) continue;
@@ -231,6 +253,13 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
     }
     if (!mln) return NULL;
  
+    /* if DO NOT support REUSEPORT, get one existing iodev to bind */
+    if (mln->reuseport == 0) {
+        pdev = arr_value(mln->devlist, 0);
+    } else {
+        pdev = NULL;
+    }
+
     /* now create one listen socket for each running epump thread */
     EnterCriticalSection(&pcore->epumplistCS);
  
@@ -241,11 +270,22 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
         if (!epump) continue;
  
         if (mln->fdtype == FDT_LISTEN) {
-            pdev = eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                        &ret, mln->cb, mln->cbpara);
+            if (mln->reuseport || pdev == NULL) {
+                pdev = eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                                            &ret, mln->cb, mln->cbpara);
+
+                if (pdev && pdev->reuseport)
+                    mln->reuseport = 1;
+            }
+
         } else if (mln->fdtype == FDT_UDPSRV) {
-            pdev = epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                        &ret, mln->cb, mln->cbpara);
+            if (mln->reuseport || pdev == NULL) {
+                pdev = epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                                            &ret, mln->cb, mln->cbpara);
+
+                if (pdev && pdev->reuseport)
+                    mln->reuseport = 1;
+            }
         }
         if (!pdev) continue;
  
@@ -280,3 +320,23 @@ int mlisten_close (void * vmln)
 
     return 1;
 }
+
+int mlisten_port (void * vmln)
+{
+    mlisten_t * mln = (mlisten_t *)vmln;
+
+    if (!mln) return -1;
+
+    return mln->port;
+}
+
+char * mlisten_lip (void * vmln)
+{
+    mlisten_t * mln = (mlisten_t *)vmln;
+
+    if (!mln) return "";
+
+    return mln->localip;
+}
+
+

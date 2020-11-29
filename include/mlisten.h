@@ -26,6 +26,9 @@ typedef struct mlisten_st_ {
     char         localip[41];
     int          port;
 
+    /* if supported or started REUSEPORT function */
+    int          reuseport;
+
     void       * para;
     IOHandler  * cb;
     void       * cbpara;
@@ -40,6 +43,8 @@ void * mlisten_alloc (char * localip, int port, int fdtype, void * para, IOHandl
 void   mlisten_free  (void * vmln);
 int    mlisten_iodev_add (void * vmln, void * pdev);
 
+int    mlisten_port (void * vmln);
+char * mlisten_lip (void * vmln);
 
 int    epcore_mlisten_init (void * epcore);
 int    epcore_mlisten_clean (void * epcore);
@@ -55,9 +60,11 @@ void * mlisten_open  (void * epcore,  char * localip, int port, int fdtype,
                       void * para, IOHandler * cb, void * cbpara);
 int    mlisten_close (void * vmln);
 
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif
+
 

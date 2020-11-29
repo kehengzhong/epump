@@ -16,6 +16,7 @@ void * epudp_listen_create (void * vpcore, char * localip, int port,
 {
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t  * pdev = NULL;
+    sockopt_t  sockopt = {0};
  
     if (retval) *retval = -1;
     if (!pcore) return NULL;
@@ -26,13 +27,27 @@ void * epudp_listen_create (void * vpcore, char * localip, int port,
         return NULL;
     }
  
-    pdev->fd = udp_listen(localip, port);
+    memset(&sockopt, 0, sizeof(sockopt));
+    sockopt.mask |= SOM_REUSEADDR;
+    sockopt.reuseaddr = 1;
+ 
+    sockopt.mask |= SOM_REUSEPORT;
+    sockopt.reuseport = 1;
+ 
+    sockopt.mask |= SOM_KEEPALIVE;
+    sockopt.keepalive = 1;
+
+    pdev->fd = udp_listen(localip, port, &sockopt);
     if (pdev->fd == INVALID_SOCKET) {
         iodev_close(pdev);
         if (retval) *retval = -200;
         return NULL;
     }
  
+    pdev->reuseaddr = (sockopt.reuseaddr_ret == 0) ? 1 : 0;
+    pdev->reuseport = (sockopt.reuseport_ret == 0) ? 1 : 0;
+    pdev->keepalive = (sockopt.keepalive_ret == 0) ? 1 : 0;
+
     sock_nonblock_set(pdev->fd, 1);
  
     pdev->local_port = port;
@@ -100,6 +115,7 @@ void * epudp_client (void * vpcore, char * localip, int port,
 {
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * pdev = NULL;
+    sockopt_t   sockopt = {0};
  
     if (retval) *retval = -1;
     if (!pcore) return NULL;
@@ -110,16 +126,31 @@ void * epudp_client (void * vpcore, char * localip, int port,
         return NULL;
     }
  
+    memset(&sockopt, 0, sizeof(sockopt));
+    sockopt.mask |= SOM_REUSEADDR;
+    sockopt.reuseaddr = 1;
+ 
+    sockopt.mask |= SOM_REUSEPORT;
+    sockopt.reuseport = 1;
+ 
+    sockopt.mask |= SOM_KEEPALIVE;
+    sockopt.keepalive = 1;
+
     if (port == 0)
         pdev->fd = socket(AF_INET, SOCK_DGRAM, 0);
     else
-        pdev->fd = udp_listen(localip, port);
+        pdev->fd = udp_listen(localip, port, &sockopt);
+
     if (pdev->fd == INVALID_SOCKET) {
         iodev_close(pdev);
         if (retval) *retval = -200;
         return NULL;
     }
  
+    pdev->reuseaddr = (sockopt.reuseaddr_ret == 0) ? 1 : 0;
+    pdev->reuseport = (sockopt.reuseport_ret == 0) ? 1 : 0;
+    pdev->keepalive = (sockopt.keepalive_ret == 0) ? 1 : 0;
+
     sock_nonblock_set(pdev->fd, 1);
  
     pdev->local_port = port;

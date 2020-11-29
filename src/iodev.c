@@ -39,6 +39,10 @@ int iodev_init (void * vdev)
     pdev->tcp_nopush = TCP_NOPUSH_DISABLE;
     pdev->tcp_nodelay = TCP_NODELAY_DISABLE;
 
+    pdev->reuseaddr = 0;
+    pdev->reuseport = 0;
+    pdev->keepalive = 0;
+
     return 0;
 }
 
