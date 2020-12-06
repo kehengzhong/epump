@@ -3,7 +3,7 @@
 * [二. ePump解决什么？](#二-epump解决什么？)
 * [三. ePump框架工作原理](#三-ePump框架工作原理)
     * [3.1 ePump基础数据结构](#31-ePump基础数据结构)
-        * [3.1.1 设备（iodev_t）](#311-设备（iodevt）)
+        * [3.1.1 设备（iodev_t）](#311-设备iodevt)
         * [3.1.2 定时器（iotimer_t）](#312-定时器（iotimert）)
         * [3.1.3 事件（ioevent_t）](#313-事件（ioeventt）)
     * [3.2 ePump多线程架构](#32-epump多线程架构)
