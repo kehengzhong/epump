@@ -420,7 +420,7 @@ ePump¿ò¼ÜÏîÄ¿ÒÀÀµÓÚ adif ÏîÄ¿Ìá¹©µÄ»ù´¡Êý¾Ý½á¹¹ºÍËã·¨¿â¡£adif ÊÇÓÃ±ê×¼ c ÓïÑÔ¿ª·
 Ê®¶þ. ¹ØÓÚ×÷Õß ÀÏ¿Â (laoke)
 ------
 
-ÓÐ´óÁ¿LinuxµÈÏµÍ³ÉÏµÄÓ¦ÓÃÆ½Ì¨ºÍÍ¨ÐÅÏµÍ³¿ª·¢¾­Àú£¬ÊÇ×ÊÉî³ÌÐòÔ±¡¢¹¤³ÌÊ¦£¬·¢ÓÊ¼þkehengzhong@hotmail.com¿ÉÒÔÕÒµ½×÷Õß£¬»òÕßÍ¨¹ýQQºÅÂë571527»òÎ¢ÐÅºÅbeijingkehz¸ø×÷ÕßÁôÑÔ¡£
+ÓÐ´óÁ¿LinuxµÈÏµÍ³ÉÏµÄÓ¦ÓÃÆ½Ì¨ºÍÍ¨ÐÅÏµÍ³¿ª·¢¾­Àú£¬ÊÇ×ÊÉî³ÌÐòÔ±¡¢¹¤³ÌÊ¦£¬·¢ÓÊ¼þkehengzhong@hotmail.com¿ÉÒÔÕÒµ½×÷Õß£¬»òÕßÍ¨¹ýQQºÅÂë[571527](tencent://message/?uin=571527&Site=im.qq.com&Menu=yes)»òÎ¢ÐÅºÅ[beijingkehz](http://wx.qq.com/)¸ø×÷ÕßÁôÑÔ¡£
 
 ePump¿ò¼ÜÏîÄ¿ÊÇ×÷ÕßÈý¸ö¹ØÁª¿ªÔ´ÏîÄ¿µÄµÚ¶þ¸öÏîÄ¿£¬×÷Îª¸ßÐÔÄÜÏµÍ³Èí¼þ»ù´¡¿ò¼Ü£¬ÊÇ´óÁ¿ÏµÍ³ÑÐ·¢Êµ¼ùÖÐÌáÁ¶³öÀ´µÄ£¬Îª¿ª·¢´ó²¢·¢·þÎñÆ÷ÏµÍ³Ìá¹©¿ò¼ÜÖ§³Å¡£±¾ÏîÄ¿Ô´×ÔÓÚ2003Äê¿ª·¢Íê³ÉµÄeProbeÏîÄ¿£¬ÔÚÆä»ù´¡ÉÏ×öÁË´óÁ¿µÄÓÅ»¯£¬´úÂë±äµÃ¸ü¼Ó¼ò½à¸ßÐ§¡£
 
