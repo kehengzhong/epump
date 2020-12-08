@@ -22,13 +22,14 @@ adif_lib = $(PREFIX)/lib
 
 epump_inc = $(ROOT)/include
 epump_src = $(ROOT)/src
+epump_sample = $(ROOT)/sample
 
 inc = $(ROOT)/include
 obj = $(ROOT)/obj
 dst = $(ROOT)/lib
 
-bin = $(dst)/$(PKG_A_LIB)
-sobin = $(dst)/$(PKG_SO_LIB)
+alib = $(dst)/$(PKG_A_LIB)
+solib = $(dst)/$(PKG_SO_LIB)
 
 ADIF_RPATH = -Wl,-rpath,$(adif_lib)
 
@@ -166,9 +167,10 @@ objs = $(patsubst $(epump_src)/%.c,$(obj)/%.o,$(sources))
 
 .PHONY: all clean debug show
 
-all: $(bin) $(sobin)
-so: $(sobin)
-debug: $(bin) $(sobin)
+all: $(alib) $(solib)
+	@(if cd $(epump_sample);then $(MAKE) $@;fi)
+so: $(solib)
+debug: $(alib) $(solib)
 clean: 
 	$(RM) $(objs)
 	$(RM) -r $(obj)
@@ -176,15 +178,17 @@ clean:
 	@cd $(dst) && $(RM) $(PKG_SO_LIB)
 	@cd $(dst) && $(RM) $(PKG_SONAME_LIB)
 	@cd $(dst) && $(RM) $(PKG_VERSO_LIB)
+	@(if cd $(epump_sample);then $(MAKE) $@;fi)
 show:
-	@echo $(bin)
-	@echo $(sobin)
+	@echo $(alib)
+	@echo $(solib)
 
 dist: $(cnfs) $(sources)
 	cd $(ROOT)/.. && tar czvf $(PKGNAME)-$(PKG_VER).tar.gz $(PKGPATH)/src \
-	    $(PKGPATH)/include $(PKGPATH)/lib $(PKGPATH)/Makefile
+	    $(PKGPATH)/include $(PKGPATH)/lib $(PKGPATH)/Makefile $(PKGPATH)/README.md \
+	    $(PKGPATH)/LICENSE $(PKGPATH)/sample
 
-install: $(bin) $(sobin)
+install: $(alib) $(solib)
 	mkdir -p $(INSTALL_INC_PATH) $(INSTALL_LIB_PATH)
 	install -s $(dst)/$(PKG_A_LIB) $(INSTALL_LIB_PATH)
 	cp -af $(dst)/$(PKG_VERSO_LIB) $(INSTALL_LIB_PATH)
@@ -198,6 +202,7 @@ uninstall:
 	cd $(INSTALL_LIB_PATH) && $(RM) $(PKG_VERSO_LIB) 
 	cd $(INSTALL_LIB_PATH) && $(RM) $(PKG_A_LIB) 
 	$(RM) $(INSTALL_INC_PATH)/epump.h
+
 
 #################################################################
 #  Additional Rules
@@ -214,14 +219,15 @@ uninstall:
 #  SOURCES = $(wildcard *.c *.cpp)
 #  OBJS = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 #  CSRC = $(filter %.c,$(files))
+#  SRCOBJ = $(SOURCES:.c=.o)
 
 
-$(sobin): $(objs) 
+$(solib): $(objs) 
 	$(SOLINK) $(dst)/$(PKG_VERSO_LIB) $? 
 	@cd $(dst) && $(RM) $(PKG_SONAME_LIB) && ln -s $(PKG_VERSO_LIB) $(PKG_SONAME_LIB)
 	@cd $(dst) && $(RM) $(PKG_SO_LIB) && ln -s $(PKG_SONAME_LIB) $(PKG_SO_LIB)
      
-$(bin): $(objs) 
+$(alib): $(objs) 
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $(RANLIBFLAGS) $@
 
