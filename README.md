@@ -205,29 +205,35 @@ ePump框架对文件描述符进行了封装，采用iodev_t数据结构来管理每一个文件描述符，将文
 六. ePump框架的回调（Call Back）机制
 ------
  
-根据业务逻辑，软件模块一般采用分层模型，不同的模块之间一般通过函数接口来相互调用，但在分层逻辑中下层模
-块通常作为基础能力设施，譬如进行运算、I/O读写等功能，提供函数调用接口给上层模块，上层模块通过下层模
-块的接口函数来使用其运算、读写等功能。作为底层支撑模块，下层模块如何调用上层模块的函数功能呢？这就
-是回调（CallBack）机制。
+根据业务逻辑，软件模块一般采用分层模型，不同的模块之间一般通过函数接口来相互调用，但在分层逻辑中下层模块通常作为基础能力设施，譬如进行运算、I/O读写等功能，提供函数调用接口给上层模块，上层模块通过下层模块的接口函数来使用其运算、读写等功能。作为底层支撑模块，下层模块如何调用上层模块的函数功能呢？这就是回调（CallBack）机制。
  
-ePump框架作为底层基础设施，给不同的业务系统提供功能支撑，业务系统的流程实现纷繁复杂，通过回调（Callback）
-机制，将实现上层业务系统的函数指针注册到ePump框架的文件描述符设备或定时器中，当ePump监听到设备和定时
-器的I/O读写状态、定时器超时状态发生变化时，通过事件驱动模型，执行上层系统注册到发生状态变化的设备和
-定时器的回调函数，从而运用ePump底层多线程CPU并行处理运算处理能力来解决复杂的业务流程的目的。
+ePump框架作为底层基础设施，给不同的业务系统提供功能支撑，业务系统的流程实现纷繁复杂，通过回调（Callback）机制，将实现上层业务系统的函数指针注册到ePump框架的文件描述符设备或定时器中，当ePump监听到设备和定时器的I/O读写状态、定时器超时状态发生变化时，通过事件驱动模型，执行上层系统注册到发生状态变化的设备和定时器的回调函数，从而运用ePump底层多线程CPU并行处理运算处理能力来解决复杂的业务流程的目的。
  
-ePump的回调（CallBack）机制封装在ePump对上层模块提供的接口函数中，在ePump的接口函数中，一般包含有需要
-传入的函数指针，这个函数指针指向的是上层业务函数，它就是ePump的回调函数，回调函数的原型定义如下：
+ePump的回调（CallBack）机制封装在ePump对上层模块提供的接口函数中，在ePump的接口函数中，一般包含有需要传入的函数指针，这个函数指针指向的是上层业务函数，它就是ePump的回调函数，回调函数的原型定义如下：
 
 ```c
    typedef int IOHandler (void * vmgmt, void * pobj, int event, int fdtype);
 ```
 
-第一个参数由上层模块ePump接口函数的参数传入，第二参数pobj、第三个参数event、第四个参数fdtype，是ePump
-回调返回时传递的参数。其中
+第一个参数由上层模块ePump接口函数的参数传入，第二参数pobj、第三个参数event、第四个参数fdtype，是ePump回调返回时传递的参数。其中
    * pobj   是ePump产生I/O读写就绪ready时的iodev_t设备对象或者iotimer_t定时器对象
    * event  是事件类型
    * fdtype 是文件描述符类型
  
+ePump中管理的iodev_t设备对象和iotime_t定时器对象，产生的事件类型如下：
+```
+    /* event types include getting connected, connection accepted, readable,
+     * writable, timeout. the working threads will be driven by these events */
+    #define IOE_CONNECTED        1
+    #define IOE_CONNFAIL         2
+    #define IOE_ACCEPT           3
+    #define IOE_READ             4
+    #define IOE_WRITE            5
+    #define IOE_INVALID_DEV      6
+    #define IOE_TIMEOUT          100
+    #define IOE_USER_DEFINED     10000
+```
+
 ePump对上层提供的基本接口函数如下：
 ```c
 void * eptcp_listen  (void * vpcore, char * localip, int port, void * para, int * retval,
@@ -253,9 +259,7 @@ void * iotimer_start (void * pcore, int ms, int cmdid, void * para, IOHandler * 
 int    iotimer_stop  (void * viot);
 ```
  
-ePump框架提供的功能接口函数涵盖了TCP、UDP、Unix Socket等通信设施所产生的文件描述符事件监听，和定时器事件的监听。
-对于除了TCP、UDP、Unix Socket之外的文件描述符，可以使用epfile_bind_fd接口来创建并绑定文件描述符设备，这样可
-以扩展到任意文件描述符FD都可以加入到ePump架构中进行管理和事件驱动。
+ePump框架提供的功能接口函数涵盖了TCP、UDP、Unix Socket等通信设施所产生的文件描述符事件监听，和定时器事件的监听。对于除了TCP、UDP、Unix Socket之外的文件描述符，可以使用epfile_bind_fd接口来创建并绑定文件描述符设备，这样可以扩展到任意文件描述符FD都可以加入到ePump架构中进行管理和事件驱动。
  
 
 七. ePump框架的调度（Scheduling）机制
