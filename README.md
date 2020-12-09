@@ -221,7 +221,7 @@ ePumpµÄ»Øµ÷£¨CallBack£©»úÖÆ·â×°ÔÚePump¶ÔÉÏ²ãÄ£¿éÌá¹©µÄ½Ó¿Úº¯ÊıÖĞ£¬ÔÚePumpµÄ½Ó¿Úº
    * fdtype ÊÇÎÄ¼şÃèÊö·ûÀàĞÍ
  
 ePumpÖĞ¹ÜÀíµÄiodev_tÉè±¸¶ÔÏóºÍiotime_t¶¨Ê±Æ÷¶ÔÏó£¬ÔÚ×´Ì¬·¢Éú±ä»¯Ê±£¬ePump»á²úÉúÏàÓ¦µÄÊÂ¼ş£¬ÕâĞ©ÊÂ¼şÀàĞÍÈçÏÂ£º
-```
+```c
     /* event types include getting connected, connection accepted, readable,
      * writable, timeout. the working threads will be driven by these events */
     #define IOE_CONNECTED        1
