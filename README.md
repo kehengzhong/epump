@@ -1,4 +1,4 @@
-## ePump - an Event-driven, Multi-threaded C-Framework
+## ePump - an event-driven, multi-threaded c-framework
 
 *A C-language framework based on I/O event notification, non-blocking communication and multi-threaded event-driven model helps you to develop servers with high-performance and numerous concurrent connections.*
 
@@ -393,7 +393,7 @@ ePump框架中确实存在一种iodev_t设备类型，就是监听某个服务端口的Listen设备，如用TC
 
 The framework ePump can run on most Unix-like system and Windows OS, especially work better on Linux.
 
-If you get the copy of ePump package on Unix-like system and find the configure scripts in the top directory have no execute permission, please type the following commands before getting the library running:
+If you get the copy of ePump package on Unix-like system and find the Makefile in the top directory, please type the following commands before getting the library installed:
 
 ```bash
 $ make && make install
