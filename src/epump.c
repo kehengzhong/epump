@@ -368,13 +368,14 @@ int epump_iodev_add (void * veps, void * vpdev)
 
         if (obj != NULL) {
             rbtree_delete(epump->device_tree, &pdev->fd);
-            iodev_close(obj);
         }
 
         rbtree_insert(epump->device_tree, &pdev->fd, pdev, NULL);
     }
 
     LeaveCriticalSection(&epump->devicetreeCS);
+
+    if (obj) iodev_close(obj);
 
     return 0;
 }
