@@ -16,8 +16,10 @@ ROOT := .
 adif_inc = $(PREFIX)/include/adif
 adif_lib = $(PREFIX)/lib
 
-epump_inc = $(PREFIX)/include
-epump_lib = $(PREFIX)/lib
+#epump_inc = $(PREFIX)/include
+#epump_lib = $(PREFIX)/lib
+epump_inc = ../../include
+epump_lib = ../../lib
 
 main_inc = $(ROOT)
 main_src = $(ROOT)
@@ -39,7 +41,7 @@ IFLAGS = -I$(adif_inc) -I$(epump_inc)
 
 CFLAGS = -Wall -O3 -fPIC
 LFLAGS = -L/usr/lib -L/usr/local/lib
-LIBS = -lnsl -lm -lz -lpthread
+LIBS = -lm -lpthread
 
 APPLIBS = -ladif -lepump $(RPATH)
 
