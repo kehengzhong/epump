@@ -40,7 +40,7 @@ CC = gcc
 IFLAGS = -I$(adif_inc) -I$(epump_inc)
 
 CFLAGS = -Wall -O3 -fPIC
-LFLAGS = -L/usr/lib -L/usr/local/lib
+LFLAGS = -L/usr/lib -L/usr/local/lib -L$(epump_lib)
 LIBS = -lm -lpthread
 
 APPLIBS = -ladif -lepump $(RPATH)
