@@ -20,6 +20,7 @@ extern "C" {
 #define IOE_WRITE            5
 #define IOE_INVALID_DEV      6
 #define IOE_TIMEOUT          100
+#define IOE_DNS_RECV         200
 #define IOE_USER_DEFINED     10000
 
 
@@ -56,13 +57,14 @@ int    ioevent_handle (void * vepump);
 
 void   ioevent_print (void * vioe, char * title);
 
-#define PushConnectedEvent(epump, obj) ioevent_push((epump), IOE_CONNECTED, (obj), NULL, NULL)
-#define PushConnfailEvent(epump, obj) ioevent_push((epump), IOE_CONNFAIL, (obj), NULL, NULL)
-#define PushConnAcceptEvent(epump, obj) ioevent_push((epump), IOE_ACCEPT, (obj), NULL, NULL)
-#define PushReadableEvent(epump, obj) ioevent_push((epump), IOE_READ, (obj), NULL, NULL)
-#define PushWritableEvent(epump, obj) ioevent_push((epump), IOE_WRITE, (obj), NULL, NULL)
-#define PushTimeoutEvent(epump, obj) ioevent_push((epump), IOE_TIMEOUT, (obj), NULL, NULL)
-#define PushInvalidDevEvent(epump, obj) ioevent_push((epump), IOE_INVALID_DEV, (obj), NULL, NULL)
+#define PushConnectedEvent(epump, obj)   ioevent_push((epump), IOE_CONNECTED, (obj), NULL, NULL)
+#define PushConnfailEvent(epump, obj)    ioevent_push((epump), IOE_CONNFAIL, (obj), NULL, NULL)
+#define PushConnAcceptEvent(epump, obj)  ioevent_push((epump), IOE_ACCEPT, (obj), NULL, NULL)
+#define PushReadableEvent(epump, obj)    ioevent_push((epump), IOE_READ, (obj), NULL, NULL)
+#define PushWritableEvent(epump, obj)    ioevent_push((epump), IOE_WRITE, (obj), NULL, NULL)
+#define PushTimeoutEvent(epump, obj)     ioevent_push((epump), IOE_TIMEOUT, (obj), NULL, NULL)
+#define PushInvalidDevEvent(epump, obj)  ioevent_push((epump), IOE_INVALID_DEV, (obj), NULL, NULL)
+#define PushDnsRecvEvent(epump, obj)     ioevent_push((epump), IOE_DNS_RECV, (obj), NULL, NULL)
 
 #define PushUserEvent (epump, obj, cb, para) \
           ioevent_push((epump), IOE_USER_DEFINED, (obj), (cb), (para))

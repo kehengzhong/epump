@@ -32,6 +32,10 @@ void * eptcp_connect (void * vpcore, struct in_addr ip, int port,
                       char * localip, int localport, void * para,
                       int * retval, IOHandler * cb, void * cbpara);
 
+void * eptcp_nb_connect (void * vpcore, char * host, int port,
+                         char * localip, int localport, void * para,
+                         int * retval, IOHandler * cb, void * cbpara);
+
 #ifdef __cplusplus
 }
 #endif

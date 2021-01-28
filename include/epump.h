@@ -33,6 +33,7 @@ typedef int GeneralCB (void * vpara, int status);
 #define IOE_WRITE            5
 #define IOE_INVALID_DEV      6
 #define IOE_TIMEOUT          100
+#define IOE_DNS_RECV         200
 #define IOE_USER_DEFINED     10000
 
 #define RWF_READ             0x02
@@ -219,6 +220,32 @@ void * epusock_accept (void * vpcore, void * vld, void * para, int * retval,
 
 void * epfile_bind_fd (void * vpcore, int fd, void * para, IOHandler * ioh, void * iohpara);
 void * epfile_bind_stdin (void * vpcore, void * para, IOHandler * ioh, void * iohpara);
+
+
+/* DNS resolving functions */
+
+/* Response Code definition */
+#define DNS_ERR_NO_ERROR       0
+#define DNS_ERR_FORMAT_ERROR   1
+#define DNS_ERR_SERVER_FAILURE 2
+#define DNS_ERR_NAME_ERROR     3
+#define DNS_ERR_UNSUPPORTED    4
+#define DNS_ERR_REFUSED        5
+#define DNS_ERR_IPV4           200
+#define DNS_ERR_IPV6           201
+#define DNS_ERR_NO_RESPONSE    404
+#define DNS_ERR_SEND_FAIL      405
+#define DNS_ERR_RESOURCE_FAIL  500
+
+typedef int DnsCB (void * cbobj, char * name, int namelen, void * cache, int status);
+
+int    dns_query (void * vpcore, char * name, int len, DnsCB * cb, void * cbobj);
+
+int    dns_cache_num      (void * vcache);
+int    dns_cache_getip    (void * vcache, int ind, char * iplist, int len);
+int    dns_cache_getiplist(void * vcache, char ** iplist, int listnum);
+int    dns_cache_sockaddr (void * vcache, int index, int port, ep_sockaddr_t * addr);
+int    dns_cache_a_num    (void * vcache);
 
 
 #ifdef __cplusplus

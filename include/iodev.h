@@ -21,6 +21,7 @@ extern "C" {
 #define IOS_CONNECTING   0x01
 #define IOS_ACCEPTING    0x02
 #define IOS_READWRITE    0x04
+#define IOS_RESOLVING    0x08
 
 /* bind type specifying how iodev_t devices are bound to the underlying epump thread */
 #define BIND_NONE                0

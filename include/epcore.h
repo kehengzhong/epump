@@ -88,6 +88,9 @@ typedef struct EPCore_ {
     bpool_t          * event_pool;
     bpool_t          * epump_pool;
 
+    /* DNS management instance */
+    void             * dnsmgmt;
+
     /* configuration file API visiting handle */
     void             * hconf;
 
