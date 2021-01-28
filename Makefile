@@ -37,8 +37,8 @@ ADIF_RPATH = -Wl,-rpath,$(adif_lib)
 #  Customization of shared object library (SO)
 
 PKG_VER_MAJOR = 2
-PKG_VER_MINOR = 0
-PKG_VER_RELEASE = 14
+PKG_VER_MINOR = 1
+PKG_VER_RELEASE = 2
 PKG_VER = $(PKG_VER_MAJOR).$(PKG_VER_MINOR).$(PKG_VER_RELEASE)
 
 PKG_VERSO_LIB = $(PKG_SO_LIB).$(PKG_VER)
