@@ -20,6 +20,7 @@
 #include "ioevent.h"
 #include "epwakeup.h"
 #include "mlisten.h"
+#include "epdns.h"
 
 #ifdef UNIX
 
@@ -151,6 +152,8 @@ void * epcore_new (int maxfd, int dispmode)
     epcore_mlisten_init(pcore);
     epcore_wakeup_init(pcore);
 
+    pcore->dnsmgmt = dns_mgmt_init(pcore, NULL, NULL);
+
     return pcore;
 }
 
@@ -160,6 +163,8 @@ void epcore_clean (void * vpcore)
     epcore_t * pcore = (epcore_t *)vpcore;
 
     if (!pcore) return;
+
+    dns_mgmt_clean(pcore->dnsmgmt);
 
     epcore_mlisten_clean(pcore);
 
@@ -708,6 +713,13 @@ int epcore_global_iodev_getmon (void * vpcore, void * veps)
             continue;
         }
 
+        if (pdev->epump != NULL) continue;
+ 
+        if (pdev->bindtype != BIND_ALL_EPUMP) {
+            arr_delete(pcore->glbiodev_list, i); i--; num--;
+        }
+ 
+        pdev->epump = epump;
         epump_iodev_add(epump, pdev);
 
         if (epump->setpoll)

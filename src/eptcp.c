@@ -5,11 +5,14 @@
 
 #include "btype.h"
 #include "tsock.h"
+#include "strutil.h"
 
 #include "epcore.h"
 #include "epump_local.h"
 #include "iodev.h"
+#include "ioevent.h"
 #include "mlisten.h"
+#include "epdns.h"
 
 
 void * eptcp_listen_create (void * vpcore, char * localip, int port, void * para, int * retval,
@@ -247,3 +250,136 @@ void * eptcp_connect (void * vpcore, char * host, int port,
     return pdev;
 }
  
+
+int eptcp_connect_dnscb (void * vdev, char * name, int len, void * cache, int status)
+{
+    iodev_t       * pdev = (iodev_t *)vdev;
+    ep_sockaddr_t   addr;
+    char            dstip[41];
+    int             succ = 0;
+
+    if (!pdev) return -1;
+
+    if (status == DNS_ERR_IPV4 || status == DNS_ERR_IPV6) {
+        str_secpy(dstip, sizeof(dstip)-1, name, len);
+
+    } else if (dns_cache_getip(cache, 0, dstip, sizeof(dstip)-1) <= 0) {
+        if (pdev->callback)
+            (*pdev->callback)(pdev->cbpara, pdev, IOE_CONNFAIL, pdev->fdtype);
+        return 0;
+    }
+
+    str_secpy(pdev->remote_ip, sizeof(pdev->remote_ip), dstip, strlen(dstip));
+
+    if (sock_addr_parse(dstip, -1, pdev->remote_port, &addr) < 0) {
+        if (pdev->callback)
+            (*pdev->callback)(pdev->cbpara, pdev, IOE_CONNFAIL, pdev->fdtype);
+        return 0;
+    }
+
+    pdev->fd = tcp_ep_connect(&addr, 1, pdev->local_ip, pdev->local_port, NULL, &succ);
+    if (pdev->fd == INVALID_SOCKET) {
+        if (pdev->callback)
+            (*pdev->callback)(pdev->cbpara, pdev, IOE_CONNFAIL, pdev->fdtype);
+        return 0;
+    }
+
+    if (succ > 0) { /* connect successfully */
+        pdev->iostate = IOS_READWRITE;
+        iodev_rwflag_set(pdev, RWF_READ);
+
+        if (pdev->callback)
+            (*pdev->callback)(pdev->cbpara, pdev, IOE_CONNECTED, pdev->fdtype);
+
+    } else {
+        pdev->iostate = IOS_CONNECTING;
+        iodev_rwflag_set(pdev, RWF_READ | RWF_WRITE);
+    }
+
+    /* epump is system-decided: select one lowest load epump thread to be bound */
+    iodev_bind_epump(pdev, BIND_ONE_EPUMP, NULL);
+
+    return 0;
+}
+
+void * eptcp_nb_connect (void * vpcore, char * host, int port,
+                         char * localip, int localport, void * para,
+                         int * retval, IOHandler * cb, void * cbpara)
+{
+    epcore_t      * pcore = (epcore_t *)vpcore;
+    iodev_t       * pdev = NULL;
+    ep_sockaddr_t   addr;
+    int             succ = 0;
+
+    if (retval) *retval = -1;
+    if (!pcore) return NULL;
+
+    if (!host) {
+        if (retval) *retval = -10;
+        return NULL;
+    }
+
+    pdev = iodev_new(pcore);
+    if (!pdev) {
+        if (retval) *retval = -20;
+        return NULL;
+    }
+
+    pdev->fdtype = FDT_CONNECTED;
+    pdev->para = para;
+
+    if (cb) {
+        pdev->callback = cb;
+        pdev->cbpara = cbpara;
+    }
+
+    str_secpy(pdev->local_ip, sizeof(pdev->local_ip), localip, strlen(localip));
+    pdev->local_port = localport;
+
+    pdev->remote_port = port;
+
+    /* indicates the current worker thread will handle the upcoming read/write event */
+    if (pcore->dispmode == 1)
+        pdev->threadid = get_threadid();
+
+    if (sock_addr_parse(host, -1, port, &addr) <= 0) {
+        if (dns_nb_query(pcore->dnsmgmt, host, -1, NULL, NULL, eptcp_connect_dnscb, pdev) < 0) {
+            iodev_close(pdev);
+            if (retval) *retval = -30;
+            return NULL;
+        }
+
+        pdev->iostate = IOS_RESOLVING;
+        if (retval) *retval = -101;
+
+        return pdev;
+    }
+
+    str_secpy(pdev->remote_ip, sizeof(pdev->remote_ip), host, strlen(host));
+
+    pdev->fd = tcp_ep_connect(&addr, 1, localip, localport, NULL, &succ);
+    if (pdev->fd == INVALID_SOCKET) {
+        iodev_close(pdev);
+        if (retval) *retval = -30;
+        return NULL;
+    }
+
+    if (succ > 0) { /* connect successfully */
+        pdev->iostate = IOS_READWRITE;
+        if (retval) *retval = 0;
+
+        iodev_rwflag_set(pdev, RWF_READ);
+
+    } else {
+        pdev->iostate = IOS_CONNECTING;
+        if (retval) *retval = -100;
+
+        iodev_rwflag_set(pdev, RWF_READ | RWF_WRITE);
+    }
+
+    /* epump is system-decided: select one lowest load epump thread to be bound */
+    iodev_bind_epump(pdev, BIND_ONE_EPUMP, NULL);
+
+    return pdev;
+}
+

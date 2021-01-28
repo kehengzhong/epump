@@ -429,10 +429,15 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
     if (!pcore) return -2;
 
     if (bindtype == BIND_ONE_EPUMP) { //1, epump will be system-decided
-        epump = epump_thread_select(pcore);
-        if (!epump) return -100;
-
         pdev->bindtype = BIND_ONE_EPUMP; //1
+
+        epump = epump_thread_select(pcore);
+        if (!epump) {
+            /* add to global list for the loading in future-starting threads */
+            epcore_global_iodev_add(pcore, pdev);
+            return 0;
+        }
+ 
         pdev->epump = epump;
 
         epump_iodev_add(epump, pdev);
@@ -459,9 +464,18 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
         if (epump) {
             pdev->bindtype = BIND_GIVEN_EPUMP;
             pdev->epump = epump;
-
+ 
             epump_iodev_add(epump, pdev);
             (*epump->setpoll)(epump, pdev);
+ 
+        } else {
+            pdev->bindtype = BIND_ONE_EPUMP; //1
+            epump = epump_thread_select(pcore);
+            if (!epump) {
+                /* add to global list for the loading in future-starting threads */
+                epcore_global_iodev_add(pcore, pdev);
+                return 0;
+            }
         }
     }
 
