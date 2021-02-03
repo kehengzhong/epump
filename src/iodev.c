@@ -414,6 +414,39 @@ int iodev_del_notify (void * vdev, uint8 rwflag)
 }
 
 
+int iodev_unbind_epump (void * vdev)
+{
+    iodev_t  * pdev = (iodev_t *)vdev;
+    epump_t  * epump = NULL;
+    epcore_t * pcore = NULL;
+
+    if (!pdev) return -1;
+
+    pcore = (epcore_t *)pdev->epcore;
+    if (!pcore) return -2;
+
+    if (pdev->bindtype == BIND_ALL_EPUMP) {
+        /* remove from global list for the loading in future-starting threads */
+        epcore_global_iodev_del(pcore, pdev);
+
+        /* clear from poll list */
+        epump_thread_delpoll(pcore, pdev);
+    }
+
+    epump = (epump_t *)pdev->epump;
+    if (epump) {
+        epump_iodev_del(epump, pdev->fd);
+
+        if (epump->delpoll)
+            (*epump->delpoll)(epump, pdev);
+    }
+
+    pdev->bindtype = BIND_NONE;
+    pdev->epump = NULL;
+
+    return 0;
+}
+
 int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
 {
     iodev_t  * pdev = (iodev_t *)vdev;
@@ -437,7 +470,7 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
             epcore_global_iodev_add(pcore, pdev);
             return 0;
         }
- 
+
         pdev->epump = epump;
 
         epump_iodev_add(epump, pdev);
@@ -464,10 +497,7 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
         if (epump) {
             pdev->bindtype = BIND_GIVEN_EPUMP;
             pdev->epump = epump;
- 
-            epump_iodev_add(epump, pdev);
-            (*epump->setpoll)(epump, pdev);
- 
+
         } else {
             pdev->bindtype = BIND_ONE_EPUMP; //1
             epump = epump_thread_select(pcore);
@@ -477,6 +507,9 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
                 return 0;
             }
         }
+
+        epump_iodev_add(epump, pdev);
+        (*epump->setpoll)(epump, pdev);
     }
 
     return 1;

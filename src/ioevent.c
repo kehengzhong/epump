@@ -130,6 +130,7 @@ int ioevent_dispatch (void * vepump, void * vioe)
     } else {
         if (pdev) pdev->threadid = 0;
         if (piot) piot->threadid = 0;
+        if (dnsmsg) dnsmsg->threadid = 0;
 
         return epump_ioevent_push(epump, ioe);
     }
