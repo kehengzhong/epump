@@ -132,7 +132,9 @@ void     iodev_linger_close(void * vpdev);
 int      iodev_rwflag_set (void * vpdev, uint8 rwflag);
 int      iodev_add_notify (void * vdev, uint8 rwflag);
 int      iodev_del_notify (void * vdev, uint8 rwflag);
-int      iodev_bind_epump (void * vpdev, int bindtype, void * veps);
+
+int      iodev_unbind_epump (void * vdev);
+int      iodev_bind_epump   (void * vpdev, int bindtype, void * veps);
  
 ulong    iodev_id (void * vpdev);
 void   * iodev_para (void * vpdev);
