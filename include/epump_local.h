@@ -61,6 +61,7 @@ typedef struct EPump_ {
      * and set the event to signal state to wake up all the blocking thread. */
     CRITICAL_SECTION   ioeventlistCS;
     dlist_t          * ioevent_list;
+    void             * curioe;
 
     /* external event register management */
     CRITICAL_SECTION   exteventlistCS;

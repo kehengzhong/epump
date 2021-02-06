@@ -37,6 +37,9 @@ typedef struct IOEvent_ {
 
     time_t      stamp;
 
+    ulong       epumpid;
+    ulong       workerid;
+
     void      * ignitor;
     void      * igpara;
     int         ignresult;

@@ -29,6 +29,7 @@ extern "C" {
 #define BIND_GIVEN_EPUMP         2
 #define BIND_ALL_EPUMP           3
 #define BIND_NEW_FOR_EPUMP       4
+#define BIND_CURRENT_EPUMP       5
 
 
 /* the definition of FD type in the EventPump device */
@@ -82,8 +83,8 @@ typedef struct IODevice_ {
     uint32      epev;
 
     void      * iot;
-    void      * epcore;
 
+    void      * epcore;
     void      * epump;
 
     /* worker thread id */

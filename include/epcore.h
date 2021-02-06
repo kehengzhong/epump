@@ -126,7 +126,7 @@ void * epcore_iotimer_find (void * vpcore, ulong id);
 
 int    epump_thread_add (void * vpcore, void * vepump);
 int    epump_thread_del (void * vpcore, void * vepump);
-
+void * epump_thread_find (void * vpcore, ulong threadid);
 void * epump_thread_self (void * vpcore);
 void * epump_thread_select (void * vpcore);
 

@@ -25,6 +25,7 @@ typedef struct Worker_s {
     CRITICAL_SECTION   ioeventlistCS;
     dlist_t          * ioevent_list;
     void             * ioevent;
+    void             * curioe;
 
     /* current threads management */
     ulong              threadid;

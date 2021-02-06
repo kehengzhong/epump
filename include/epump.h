@@ -22,6 +22,7 @@ typedef int GeneralCB (void * vpara, int status);
 #define BIND_GIVEN_EPUMP         2
 #define BIND_ALL_EPUMP           3
 #define BIND_NEW_FOR_EPUMP       4
+#define BIND_CURRENT_EPUMP       5
 
 
 /* define the event type, including getting connected, connection accepted, readable,
