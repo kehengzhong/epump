@@ -304,7 +304,9 @@ int worker_main_proc (void * vwker)
         ioe = worker_ioevent_pop(wker);
         if (ioe) {
 
+            wker->curioe = ioe;
             ioevent_execute(pcore, ioe);
+            wker->curioe = NULL;
 
             wker->acc_event_num++;
             EnterCriticalSection(&pcore->eventnumCS);

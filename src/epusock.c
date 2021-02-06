@@ -60,7 +60,7 @@ void * epusock_connect (void * vpcore, char * sockname, void * para,
     }
  
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_ONE_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_CURRENT_EPUMP, NULL);
  
     return pdev;
 }

@@ -245,7 +245,7 @@ void * eptcp_connect (void * vpcore, char * host, int port,
     }
 
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_ONE_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_CURRENT_EPUMP, NULL);
 
     return pdev;
 }
@@ -297,7 +297,7 @@ int eptcp_connect_dnscb (void * vdev, char * name, int len, void * cache, int st
     }
 
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_ONE_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_CURRENT_EPUMP, NULL);
 
     return 0;
 }
@@ -378,7 +378,7 @@ void * eptcp_nb_connect (void * vpcore, char * host, int port,
     }
 
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_ONE_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_CURRENT_EPUMP, NULL);
 
     return pdev;
 }

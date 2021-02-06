@@ -36,6 +36,8 @@ int iodev_init (void * vdev)
     InitializeCriticalSection(&pdev->fdCS);
     pdev->fd = INVALID_SOCKET;
 
+    pdev->iot = NULL;
+
     pdev->tcp_nopush = TCP_NOPUSH_DISABLE;
     pdev->tcp_nodelay = TCP_NODELAY_DISABLE;
 
@@ -449,9 +451,14 @@ int iodev_unbind_epump (void * vdev)
 
 int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
 {
-    iodev_t  * pdev = (iodev_t *)vdev;
-    epump_t  * epump = (epump_t *)vepump;
-    epcore_t * pcore = NULL;
+    iodev_t   * pdev = (iodev_t *)vdev;
+    epump_t   * epump = (epump_t *)vepump;
+    epcore_t  * pcore = NULL;
+    worker_t  * wker = NULL;
+    epump_t   * curep = NULL;
+    ioevent_t * ioe = NULL;
+    ulong       threadid = 0;
+    ulong       epumpid = 0;
 
     if (!pdev) return -1;
 
@@ -461,7 +468,38 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
     pcore = (epcore_t *)pdev->epcore;
     if (!pcore) return -2;
 
-    if (bindtype == BIND_ONE_EPUMP) { //1, epump will be system-decided
+    if (bindtype == BIND_CURRENT_EPUMP) { //5, epump will be system-decided
+        pdev->bindtype = BIND_CURRENT_EPUMP; //5
+
+        threadid = get_threadid();
+        wker = worker_thread_find(pcore, threadid);
+        if (wker && (ioe = wker->curioe)) {
+            epumpid = ioe->epumpid;
+        } else {
+            curep = epump_thread_find(pcore, threadid);
+            if (curep && (ioe = curep->curioe)) {
+                epumpid = ioe->epumpid;
+            }
+        }
+
+        if (epumpid > 0)
+            epump = epump_thread_find(pcore, epumpid);
+
+        if (!epump)
+            epump = epump_thread_select(pcore);
+
+        if (!epump) {
+            /* add to global list for the loading in future-starting threads */
+            epcore_global_iodev_add(pcore, pdev);
+            return 0;
+        }
+
+        pdev->epump = epump;
+
+        epump_iodev_add(epump, pdev);
+        (*epump->setpoll)(epump, pdev);
+
+    } else if (bindtype == BIND_ONE_EPUMP) { //1, epump will be system-decided
         pdev->bindtype = BIND_ONE_EPUMP; //1
 
         epump = epump_thread_select(pcore);

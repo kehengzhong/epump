@@ -436,6 +436,20 @@ int epump_thread_del (void * vpcore, void * vepump)
     return 0; 
 }
 
+void * epump_thread_find (void * vpcore, ulong threadid)
+{
+    epcore_t  * pcore = (epcore_t *) vpcore;
+    epump_t   * epump = NULL;
+ 
+    if (!pcore) return NULL;
+ 
+    EnterCriticalSection(&pcore->epumplistCS);
+    epump = ht_get(pcore->epump_tab, &threadid);
+    LeaveCriticalSection(&pcore->epumplistCS);
+ 
+    return epump;
+}
+
 int epump_thread_sort (void * vpcore, int type)
 {  
     epcore_t  * pcore = (epcore_t *) vpcore; 

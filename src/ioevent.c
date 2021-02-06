@@ -101,10 +101,10 @@ int ioevent_dispatch (void * vepump, void * vioe)
             bpool_recycle(pcore->event_pool, ioe);
             return -101;
         }
- 
+
         threadid = dnsmsg->threadid;
         break;
- 
+
     case IOE_USER_DEFINED:
         threadid = get_threadid();
         break;
@@ -124,6 +124,8 @@ int ioevent_dispatch (void * vepump, void * vioe)
         }
         if (piot) piot->threadid = wker->threadid;
         if (dnsmsg) dnsmsg->threadid = wker->threadid;
+
+        ioe->workerid = wker->threadid;
 
         return worker_ioevent_push(wker, ioe);
 
@@ -153,6 +155,9 @@ int ioevent_push (void * vepump, int event, void * obj, void * cb, void * cbpara
     ioe->cbpara = cbpara;
 
     ioe->objid = 0;
+
+    ioe->epumpid = epump->threadid;
+    ioe->workerid = 0;
 
     /* find a worker thread and dispatch the event to worker event queue. */
 
@@ -318,7 +323,7 @@ void * ioevent_execute (void * vpcore, void * vioe)
     case IOE_DNS_RECV:
         dnsmsg = (DnsMsg *)ioe->obj;
         if (!dnsmsg) break;
- 
+
         dns_msg_handle(dnsmsg);
         break;
 
@@ -354,9 +359,13 @@ int ioevent_handle (void * vepump)
         ioe = ioevent_pop(epump);
         if (!ioe) break;
 
+        epump->curioe = ioe;
+
         if (ioevent_execute(pcore, ioe) > 0) {
             evnum++;
         }
+
+        epump->curioe = NULL;
     }
 
     return evnum;
@@ -369,13 +378,13 @@ void ioevent_print (void * vioe, char * title)
     iodev_t    * pdev = NULL;
     DnsMsg     * dnsmsg = NULL;
     char         buf[256];
- 
+
     if (!ioe) return;
- 
+
     buf[0] = '\0';
- 
+
     if (title) sprintf(buf+strlen(buf), "%s ObjID=%lu ", title, ioe->objid);
- 
+
     if (ioe->type == IOE_CONNECTED)        sprintf(buf+strlen(buf), "IOE_CONNECTED");
     else if (ioe->type == IOE_CONNFAIL)    sprintf(buf+strlen(buf), "IOE_CONNFAIL");
     else if (ioe->type == IOE_ACCEPT)      sprintf(buf+strlen(buf), "IOE_ACCEPT");
@@ -385,7 +394,7 @@ void ioevent_print (void * vioe, char * title)
     else if (ioe->type == IOE_DNS_RECV)    sprintf(buf+strlen(buf), "IOE_DNS_RECV");
     else if (ioe->type == IOE_INVALID_DEV) sprintf(buf+strlen(buf), "IOE_INVALID_DEV");
     else                                   sprintf(buf+strlen(buf), "Unknown");
- 
+
     if (ioe->type != IOE_TIMEOUT && ioe->type != IOE_DNS_RECV) {
         sprintf(buf+strlen(buf), " ");
         pdev = (iodev_t *)ioe->obj;
@@ -403,7 +412,7 @@ void ioevent_print (void * vioe, char * title)
         else if (pdev->fdtype == FDT_USOCK_CONNECTED) sprintf(buf+strlen(buf), "FDT_USOCK_CONNECTED");
         else if (pdev->fdtype == FDT_USOCK_ACCEPTED)  sprintf(buf+strlen(buf), "FDT_USOCK_ACCEPTED");
         else                                          sprintf(buf+strlen(buf), "Unknown Type");
- 
+
         /*sprintf(buf+strlen(buf), " FD=%d WID=%lu R<%s:%d> L<%s:%d>",
                  pdev->fd, pdev->threadid, pdev->remote_ip, pdev->remote_port,
                  pdev->local_ip, pdev->local_port);*/
@@ -416,7 +425,7 @@ void ioevent_print (void * vioe, char * title)
                     ((iotimer_t *)ioe->obj)->cmdid,
                     ((iotimer_t *)ioe->obj)->id,
                     ((iotimer_t *)ioe->obj)->threadid);
- 
+
         } else if (ioe->obj && ioe->type == IOE_DNS_RECV) {
             dnsmsg = (DnsMsg *)ioe->obj;
             sprintf(buf+strlen(buf), " Name=%s MsgID=%u RCode=%d AnsNum=%d WID=%lu",
