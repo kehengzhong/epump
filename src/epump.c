@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -581,13 +581,6 @@ int epump_main_proc (void * veps)
 
         /* handle all events in event queue via invoking their callback */
         ioevent_handle(epump);
-
-        do {
-            ret = iotimer_check_timeout(epump, &diff, &evnum);
-
-            if (evnum > 0)
-                ioevent_handle(epump);
-        } while (evnum > 0);
 
         if (pcore->quit || epump->quit)
             break;

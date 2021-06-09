@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -159,6 +159,13 @@ int ioevent_push (void * vepump, int event, void * obj, void * cb, void * cbpara
     ioe->epumpid = epump->threadid;
     ioe->workerid = 0;
 
+    EnterCriticalSection(&epump->epcore->eventnumCS);
+    epump->epcore->acc_event_num++;
+    LeaveCriticalSection(&epump->epcore->eventnumCS);
+ 
+    if (arr_num(epump->epcore->worker_list) <= 0)
+        return epump_ioevent_push(epump, ioe);
+
     /* find a worker thread and dispatch the event to worker event queue. */
 
     return ioevent_dispatch(epump, ioe);
@@ -232,11 +239,9 @@ void * ioevent_execute (void * vpcore, void * vioe)
     ioevent_t  * ioe = (ioevent_t *)vioe;
 
     iodev_t    * pdev = NULL;
-    iodev_t    * ptmp = NULL;
     iotimer_t  * piot = NULL;
     GeneralCB  * gcb = NULL;
     IOHandler  * iocb = NULL;
-    ulong        curid = 0;
 
     DnsMsg     * dnsmsg = NULL;
 
@@ -276,26 +281,11 @@ void * ioevent_execute (void * vpcore, void * vioe)
             ioe->type == IOE_ACCEPT)
             pdev->iostate = IOS_READWRITE;
 
-        curid = pdev->id;
-
         if (pdev->callback)
             (*pdev->callback)(pdev->cbpara, pdev, ioe->type, pdev->fdtype);
         else if (pcore->callback)
             (*pcore->callback)(pcore->cbpara, pdev, ioe->type, pdev->fdtype);
  
-        /* pdev may be closed during the execution of callback */
-
-        ptmp = epcore_iodev_find(pcore, curid);
-
-        if (ioe->type == IOE_INVALID_DEV && ptmp) {
-            iodev_close(ptmp);
-            ptmp = NULL;
-
-        } else if (ptmp && ptmp->fd != INVALID_SOCKET) {
-            /* if underlying fd watching is epoll and ONESHOT mode,
-               READ notify should be added each time after callback */
-            //iodev_add_notify(ptmp, ptmp->rwflag | RWF_READ);
-        }
         break;
  
     case IOE_TIMEOUT:
@@ -339,7 +329,7 @@ void * ioevent_execute (void * vpcore, void * vioe)
     /* recycle event to pool */
     bpool_recycle(pcore->event_pool, ioe);
 
-    return ptmp;
+    return NULL;
 }
 
 
@@ -361,9 +351,8 @@ int ioevent_handle (void * vepump)
 
         epump->curioe = ioe;
 
-        if (ioevent_execute(pcore, ioe) > 0) {
-            evnum++;
-        }
+        ioevent_execute(pcore, ioe);
+        evnum++;
 
         epump->curioe = NULL;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -309,9 +309,6 @@ int worker_main_proc (void * vwker)
             wker->curioe = NULL;
 
             wker->acc_event_num++;
-            EnterCriticalSection(&pcore->eventnumCS);
-            pcore->acc_event_num++;
-            LeaveCriticalSection(&pcore->eventnumCS);
     
             /* if there is no event followed the iodev_t, 
                workerid can be set 0. This leads that subsequent
@@ -335,7 +332,7 @@ int worker_main_proc (void * vwker)
             worker_real_load(wker);
 
         } else {
-            if (exenum % 5 == 0)
+            if (exenum % 10 == 0)
                 worker_real_load(wker);
         }
     }
