@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -28,7 +28,7 @@ void * eptcp_mlisten (void * vpcore, char * localip, int port, void * para,
 void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
                      IOHandler * cb, void * cbpara, int bindtype);
 
-void * eptcp_connect (void * vpcore, struct in_addr ip, int port,
+void * eptcp_connect (void * vpcore, char * ip, int port,
                       char * localip, int localport, void * para,
                       int * retval, IOHandler * cb, void * cbpara);
 
