@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -102,6 +102,8 @@ typedef struct EPCore_ {
 
 void * epcore_new (int maxfd, int dispmode);
 void   epcore_clean (void * vpcore);
+
+int    epcore_dnsrv_add (void * vpcore, char * nsip, int port);
 
 void   epcore_start_epump (void * vpcore, int maxnum);
 void   epcore_stop_epump (void * vpcore);

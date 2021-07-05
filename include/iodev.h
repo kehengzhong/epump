@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -61,7 +61,7 @@ extern "C" {
  * events as hardware does. it wraps the file-descriptor of device.  */
 
 typedef struct IODevice_ {
-    void      * res[4];
+    void      * res[2];
 
     CRITICAL_SECTION fdCS;
 
@@ -120,10 +120,10 @@ void * iodev_new_from_fd (void * vpcore, SOCKET fd, int fdtype,
                              void * para, IOHandler * cb, void * cbpara);
 
 int      iodev_rwflag_set(void * vpdev, uint8 rwflag);
- 
+
 int      iodev_add_notify (void * vpdev, uint8 rwflag);
 int      iodev_del_notify (void * vpdev, uint8 rwflag);
- 
+
 int      iodev_unbind_epump (void * vdev);
 int      iodev_bind_epump   (void * vpdev, int bindtype, void * veps);
 

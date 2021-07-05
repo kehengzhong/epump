@@ -164,7 +164,8 @@ void   dns_nsrv_free  (void * vnsrv);
 int    dns_nsrv_num   (void * vnsrv);
 int    dns_nsrv_add   (void * vnsrv, void * vhost);
  
-int    dns_nsrv_load  (void * vmgmt, char * nsip, char * resolv_file);
+int    dns_nsrv_append (void * vmgmt, char * nsip, int port);
+int    dns_nsrv_load   (void * vmgmt, char * nsip, char * resolv_file);
 
 /******************************************************
  * DNS RR - Resource Record parsed and received from NS
