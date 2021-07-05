@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -221,6 +221,16 @@ void epcore_clean (void * vpcore)
     WSACleanup();
 #endif
 }
+
+int epcore_dnsrv_add (void * vpcore, char * nsip, int port)
+{
+    epcore_t  * pcore = (epcore_t *)vpcore;
+
+    if (!pcore) return -1;
+
+    return dns_nsrv_append (pcore->dnsmgmt, nsip, port);
+}
+
 
 int epcore_set_callback (void * vpcore, void * cb, void * cbpara)
 {
@@ -728,11 +738,11 @@ int epcore_global_iodev_getmon (void * vpcore, void * veps)
         }
 
         if (pdev->epump != NULL) continue;
- 
+
         if (pdev->bindtype != BIND_ALL_EPUMP) {
             arr_delete(pcore->glbiodev_list, i); i--; num--;
         }
- 
+
         pdev->epump = epump;
         epump_iodev_add(epump, pdev);
 

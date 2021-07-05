@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -50,6 +50,7 @@ int epump_select_setpoll (void * vepump, void * vpdev)
 {
     epump_t   * epump = (epump_t *)vepump;
     iodev_t   * pdev = (iodev_t *)vpdev;
+    int         wakeepump = 0;
 
     if (!epump || !pdev) return -1;
 
@@ -60,25 +61,32 @@ int epump_select_setpoll (void * vepump, void * vpdev)
     if (pdev->rwflag & RWF_READ) {
         if (!FD_ISSET(pdev->fd, &epump->readFds)) {
             FD_SET(pdev->fd, &epump->readFds);
+            wakeepump = 1;
         }
     } else {
         if (FD_ISSET(pdev->fd, &epump->readFds)) {
             FD_CLR(pdev->fd, &epump->readFds);
+            wakeepump = 1;
         }
     }
  
     if (pdev->rwflag & RWF_WRITE) {
         if (!FD_ISSET(pdev->fd, &epump->writeFds)) {
             FD_SET(pdev->fd, &epump->writeFds);
+            wakeepump = 1;
         }
     } else {
         if (FD_ISSET(pdev->fd, &epump->writeFds)) {
             FD_CLR(pdev->fd, &epump->writeFds);
+            wakeepump = 1;
         }
     }
  
     LeaveCriticalSection(&epump->fdsetCS);
  
+    if (wakeepump)
+        epump_wakeup_send(epump);
+
     return 0;
 }
 
@@ -156,11 +164,11 @@ int epump_select_dispatch (void * veps, btime_t * delay)
     EnterCriticalSection(&epump->devicetreeCS);
 
     num = rbtree_num(epump->device_tree);
-    rbt = rbtree_min(epump->device_tree);
+    rbt = rbtree_max_node(epump->device_tree);
  
     for (i = 0; i < num && rbt; i++) {
         pdev = RBTObj(rbt);
-        rbt = rbtnode_next(rbt);
+        rbt = rbtnode_prev(rbt);
         if (!pdev) {
             rbtree_delete_node(epump->device_tree, rbt);
             continue;

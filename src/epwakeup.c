@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
  
@@ -39,6 +39,7 @@ int epcore_wakeup_init (void * vpcore)
     pdev->fd = pcore->wakeupfd;
     pdev->fdtype = FDT_FILEDEV;
     pdev->iostate = IOS_READWRITE;
+    pdev->rwflag = RWF_READ;
 
     return 0;
 }
@@ -104,7 +105,7 @@ int epcore_wakeup_getmon (void * vpcore, void * veps)
     }
 
     return 0;
-#else
+#elif defined(HAVE_SELECT)
 
     if (!pcore) return -1;
     if (!epump) return -2;
@@ -123,7 +124,9 @@ int epump_wakeup_init (void * vepump)
 {
     epump_t   * epump = (epump_t *)vepump;
     iodev_t   * pdev = NULL;
+#ifdef HAVE_EPOLL
     struct epoll_event ev = { 0, {0} };
+#endif
  
     if (!epump) return -1;
  
@@ -137,9 +140,12 @@ int epump_wakeup_init (void * vepump)
     pdev->fd = epump->wakeupfd;
     pdev->fdtype = FDT_FILEDEV;
     pdev->iostate = IOS_READWRITE;
+    pdev->rwflag = RWF_READ;
  
     epump_iodev_add(epump, epump->wakeupdev);
  
+#ifdef HAVE_EPOLL
+
     ev.data.ptr = epump->wakeupdev;
     ev.events = EPOLLIN;
     if (epoll_ctl(epump->epoll_fd, EPOLL_CTL_ADD, epump->wakeupfd, &ev) < 0) {
@@ -147,18 +153,35 @@ int epump_wakeup_init (void * vepump)
             epoll_ctl(epump->epoll_fd, EPOLL_CTL_MOD, epump->wakeupfd, &ev);
     }
 
+#elif defined(HAVE_SELECT)
+
+    if (!FD_ISSET(epump->wakeupfd, &epump->readFds)) {
+        FD_SET(epump->wakeupfd, &epump->readFds);
+    }
+
+#endif
+
     return 0;
 }
  
 int epump_wakeup_clean (void * vepump)
 {
     epump_t  * epump = (epump_t *)vepump;
+#ifdef HAVE_EPOLL
     struct epoll_event ev = { 0, {0} };
+#endif
  
     if (!epump) return -1;
  
-    if (epump_iodev_del(epump, epump->wakeupfd) != NULL)
+    if (epump_iodev_del(epump, epump->wakeupfd) != NULL) {
+#ifdef HAVE_EPOLL
         epoll_ctl(epump->epoll_fd, EPOLL_CTL_DEL, epump->wakeupfd, &ev);
+#elif defined(HAVE_SELECT)
+        if (FD_ISSET(epump->wakeupfd, &epump->readFds)) {
+            FD_CLR(epump->wakeupfd, &epump->readFds);
+        }
+#endif
+    }
 
     close(epump->wakeupfd);
     epump->wakeupfd = -1;
@@ -234,6 +257,7 @@ int epcore_wakeup_init (void * vpcore)
     pdev->fd = pcore->wakeupfd;
     pdev->fdtype = FDT_UDPSRV;
     pdev->iostate = IOS_READWRITE;
+    pdev->rwflag = RWF_READ;
 
     return 0;
 }

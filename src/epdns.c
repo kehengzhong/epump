@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -199,6 +199,22 @@ int dns_nsrv_add (void * vnsrv, void * vhost)
     return 0;
 }
  
+int dns_nsrv_append (void * vmgmt, char * nsip, int port)
+{
+    DnsMgmt * mgmt = (DnsMgmt *)vmgmt;
+    DnsHost * host = NULL;
+
+    if (!mgmt) return -1;
+    if (!nsip) return -2;
+
+    host = dns_host_new(NULL, nsip, port);
+    if (!host) return -100;
+
+    dns_nsrv_add(mgmt->nsrv, host);
+
+    return 0;
+}
+
 int dns_nsrv_load (void * vmgmt, char * nsip, char * resolv_file)
 {
     DnsMgmt * mgmt = (DnsMgmt *)vmgmt;
@@ -239,10 +255,12 @@ int dns_nsrv_load (void * vmgmt, char * nsip, char * resolv_file)
         }
     }
  
-    if (dns_nsrv_num(mgmt->nsrv) <= 1) {
+    fclose(fp);
+
+    /*if (dns_nsrv_num(mgmt->nsrv) <= 1) {
         host = dns_host_new(NULL, "8.8.8.8", 0);
         if (host) dns_nsrv_add(mgmt->nsrv, host);
-    }
+    }*/
  
     return 0;
 }
@@ -1540,6 +1558,11 @@ int dns_msg_send (void * vmsg, char * name, int len, void * vnsrv)
     }
     if (!nsrv) nsrv = mgmt->nsrv;
  
+    if (nsrv == mgmt->nsrv && dns_nsrv_num(mgmt->nsrv) <= 0) {
+        host = dns_host_new(NULL, "8.8.8.8", 0);
+        if (host) dns_nsrv_add(mgmt->nsrv, host);
+    }
+
     num = arr_num(nsrv->host_list);
  
     for (i = 0; i < num; i++) {

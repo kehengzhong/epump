@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -94,9 +94,9 @@ int iodev_cmp_iodev (void * a, void * b )
 
     if (!pdev || !patt) return 1;
 
-    if (pdev->fd > patt->fd) return -1;
+    if (pdev->fd > patt->fd) return 1;
     else if (pdev->fd == patt->fd) return 0;
-    return 1;
+    return -1;
 }
 
 int iodev_cmp_id (void * a, void * b)
@@ -120,8 +120,8 @@ int iodev_cmp_fd (void * a, void * b)
     if (!a || !b) return -1;
 
     if (pdev->fd == fd) return 0;
-    if (pdev->fd > fd) return -1;
-    return 1;
+    if (pdev->fd > fd) return 1;
+    return -1;
 }
 
 ulong iodev_hash_fd_func (void * key)

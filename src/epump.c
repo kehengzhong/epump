@@ -456,7 +456,7 @@ SOCKET epump_iodev_maxfd (void * vepump)
     LeaveCriticalSection(&epump->devicetreeCS);
 
     if (pdev)
-        return pdev->fd;
+        return pdev->fd + 1;
 
     return 0;
 }
@@ -481,7 +481,7 @@ int epump_device_scan (void * vepump)
  
     num = rbtree_num(epump->device_tree);
 
-    rbt = rbtree_min(epump->device_tree);
+    rbt = rbtree_min_node(epump->device_tree);
 
     for (i = 0; i < num && rbt; i++) {
         pdev = RBTObj(rbt);
