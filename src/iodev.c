@@ -341,14 +341,65 @@ int iodev_rwflag_set(void * vpdev, uint8 rwflag)
 }
 
 
-int iodev_add_notify (void * vdev, uint8 rwflag)
+int iodev_set_poll (void * vdev)
 {
     iodev_t  * pdev = (iodev_t *)vdev;
     epcore_t * pcore = NULL;
     epump_t  * epump = NULL;
+
+    if (!pdev) return -1;
+
+    if (pdev->fd == INVALID_SOCKET) {
+        iodev_close(pdev);
+        return -2;
+    }
+
+    if (pdev->bindtype == BIND_ALL_EPUMP) { //3
+        pcore = (epcore_t *)pdev->epcore;
+        if (pcore)
+            return epump_thread_setpoll(pcore, pdev);
+    } else {
+        epump = (epump_t *)pdev->epump;
+        if (epump)
+            return (*epump->setpoll)(epump, pdev);
+    }
+
+    return -100;
+}
+
+int iodev_clear_poll (void * vdev)
+{
+    iodev_t  * pdev = (iodev_t *)vdev;
+    epcore_t * pcore = NULL;
+    epump_t  * epump = NULL;
+
+    if (!pdev) return -1;
+
+    if (pdev->fd == INVALID_SOCKET) {
+        iodev_close(pdev);
+        return -2;
+    }
+
+    if (pdev->bindtype == BIND_ALL_EPUMP) { //3
+        pcore = (epcore_t *)pdev->epcore;
+        if (pcore)
+            return epump_thread_delpoll(pcore, pdev);
+    } else {
+        epump = (epump_t *)pdev->epump;
+        if (epump)
+            return (*epump->delpoll)(epump, pdev);
+    }
+
+    return -100;
+}
+
+int iodev_add_notify (void * vdev, uint8 rwflag)
+{
+    iodev_t  * pdev = (iodev_t *)vdev;
     uint8      tmpflag = 0;
 
     if (!pdev) return -1;
+
     if (pdev->fd == INVALID_SOCKET) {
         iodev_close(pdev);
         return 0;
@@ -356,9 +407,6 @@ int iodev_add_notify (void * vdev, uint8 rwflag)
  
     if (rwflag == 0) return 0;
 
-    pcore = (epcore_t *)pdev->epcore;
-    if (!pcore) return -2;
- 
     EnterCriticalSection(&pdev->fdCS);
     tmpflag = pdev->rwflag | rwflag;
     if (pdev->rwflag != tmpflag) {
@@ -366,35 +414,24 @@ int iodev_add_notify (void * vdev, uint8 rwflag)
     }
     LeaveCriticalSection(&pdev->fdCS);
 
-    if (pdev->bindtype == BIND_ALL_EPUMP) { //3
-        epump_thread_setpoll(pcore, pdev);
-    } else {
-        epump = (epump_t *)pdev->epump;
-        if (epump) (*epump->setpoll)(epump, pdev);
-    }
- 
-    return 0;
+    return iodev_set_poll(pdev);
 }
 
 int iodev_del_notify (void * vdev, uint8 rwflag)
 {
     iodev_t  * pdev = (iodev_t *)vdev;
-    epcore_t * pcore = NULL;
-    epump_t  * epump = NULL;
     uint8      tmpflag = 0;
     int        setpoll = 0;
  
     if (!pdev) return -1;
+
     if (pdev->fd == INVALID_SOCKET) {
         iodev_close(pdev);
         return 0;
     }
  
     if (rwflag == 0) return 0;
- 
-    pcore = (epcore_t *)pdev->epcore;
-    if (!pcore) return -2;
- 
+
     EnterCriticalSection(&pdev->fdCS);
     tmpflag = pdev->rwflag & ~rwflag;
     if (pdev->rwflag != tmpflag) {
@@ -405,14 +442,7 @@ int iodev_del_notify (void * vdev, uint8 rwflag)
 
     if (!setpoll) return 0;
 
-    if (pdev->bindtype == BIND_ALL_EPUMP) { //3
-        epump_thread_setpoll(pcore, pdev);
-    } else {
-        epump = (epump_t *)pdev->epump;
-        if (epump) (*epump->setpoll)(epump, pdev);
-    }
- 
-    return 0;
+    return iodev_set_poll(pdev);
 }
 
 

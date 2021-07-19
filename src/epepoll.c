@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -176,7 +176,7 @@ int epump_epoll_dispatch (void * veps, btime_t * delay)
     int        len;
     int        ret = 0;
     int        sockerr = 0;
-    struct sockaddr   sock;
+    ep_sockaddr_t sock;
 
     if (!epump) return -1;
 

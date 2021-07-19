@@ -157,7 +157,10 @@ void epump_recycle (void * vepump)
     if (!epump) return;
  
     pcore = (epcore_t *)epump->epcore;
-    if (!pcore) return epump_free(epump);
+    if (!pcore) {
+        epump_free(epump);
+        return;
+    }
 
     epump->quit = 1;
     epump->threadid = 0;

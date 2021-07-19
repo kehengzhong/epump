@@ -28,7 +28,7 @@ int hostn_to_dot_format (void * name, int len, void * pdst, int dstlen)
 {
     uint8  * hostn = (uint8 * )name;
     uint8  * dst = (uint8 *)pdst;
-    uint32   labellen = 0;
+    int      labellen = 0;
     int      i, j;
 
     if (!hostn) return -1;
@@ -219,19 +219,27 @@ int dns_nsrv_load (void * vmgmt, char * nsip, char * resolv_file)
 {
     DnsMgmt * mgmt = (DnsMgmt *)vmgmt;
     DnsHost * host = NULL;
+#ifdef UNIX
     FILE    * fp = NULL;
     char      buf[1024];
     char    * p = NULL;
     int       len = 0;
- 
+#endif
+#ifdef _WIN32
+    FIXED_INFO       fi;
+    ULONG            ulen = sizeof(fi);
+    IP_ADDR_STRING * paddr = NULL;
+#endif
+
     if (!mgmt) return -1;
- 
+
     if (nsip) {
         host = dns_host_new(NULL, nsip, 0);
         if (host)
             dns_nsrv_add(mgmt->nsrv, host);
     }
- 
+
+#ifdef UNIX
     if (!resolv_file)
         resolv_file = "/etc/resolv.conf";
  
@@ -256,6 +264,33 @@ int dns_nsrv_load (void * vmgmt, char * nsip, char * resolv_file)
     }
  
     fclose(fp);
+#endif
+
+#ifdef _WIN32
+    /* retrieves network parameters for the local computer */
+    if (GetNetworkParams(&fi, &ulen) != ERROR_SUCCESS) {
+        return -100;
+    }
+
+    if (fi.DomainName && strlen(fi.DomainName) > 0) {
+        host = dns_host_new(NULL, fi.DomainName, 0);
+        if (host) dns_nsrv_add(mgmt->nsrv, host);
+    }
+
+    if (fi.DnsServerList.IpAddress.String && strlen(fi.DnsServerList.IpAddress.String) > 0) {
+        host = dns_host_new(NULL, fi.DnsServerList.IpAddress.String, 0);
+        if (host) dns_nsrv_add(mgmt->nsrv, host);
+    }
+
+    paddr = fi.DnsServerList.Next;
+    while(paddr != NULL) {
+        if (paddr->IpAddress.String && strlen(paddr->IpAddress.String) > 0) {
+            host = dns_host_new(NULL, paddr->IpAddress.String, 0);
+            if (host) dns_nsrv_add(mgmt->nsrv, host);
+        }
+        paddr = paddr->Next;
+    }
+#endif
 
     /*if (dns_nsrv_num(mgmt->nsrv) <= 1) {
         host = dns_host_new(NULL, "8.8.8.8", 0);
@@ -1902,6 +1937,7 @@ int dns_recv (void * vmgmt, void * pobj)
  
         frm = frame_new(toread);
  
+        socklen = sizeof(sock);
         memset(&sock, 0, sizeof(sock));
         ret = recvfrom(iodev_fd(pdev), frameP(frm), toread, 0, 
                        (struct sockaddr *)&sock, (socklen_t *)&socklen);

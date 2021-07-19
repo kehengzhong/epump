@@ -85,7 +85,13 @@ void * epcore_new (int maxfd, int dispmode)
     time(&pcore->startup_time);
     pcore->quit = 0;
 
+#ifdef HAVE_EVENTFD
+    pcore->wakeupfd = -1;
+#else
+    pcore->informport = 0;
+    pcore->informfd = INVALID_SOCKET;
     pcore->wakeupfd = INVALID_SOCKET;
+#endif
     pcore->wakeupdev = NULL;
 
     /* initialize memory pool resource */

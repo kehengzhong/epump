@@ -242,7 +242,7 @@ int epcore_wakeup_init (void * vpcore)
     do {
 
         pcore->informport += 1;
-        pcore->wakeupfd = udp_listen(localip, pcore->informport);
+        pcore->wakeupfd = udp_listen(localip, pcore->informport, NULL);
 
     } while (pcore->wakeupfd == INVALID_SOCKET && times++ < 20000);
 
@@ -350,6 +350,8 @@ int epcore_wakeup_getmon (void * vpcore, void * veps)
     if (!pcore) return -1;
     if (!epump) return -2;
  
+    epump_iodev_add(epump, pcore->wakeupdev);
+
     ev.data.ptr = pcore->wakeupdev;
     ev.events = EPOLLIN;
     if (epoll_ctl(epump->epoll_fd, EPOLL_CTL_ADD, pcore->wakeupfd, &ev) < 0) {
@@ -363,6 +365,8 @@ int epcore_wakeup_getmon (void * vpcore, void * veps)
     if (!pcore) return -1;
     if (!epump) return -2;
  
+    epump_iodev_add(epump, pcore->wakeupdev);
+
     if (!FD_ISSET(pcore->wakeupfd, &epump->readFds)) {
         FD_SET(pcore->wakeupfd, &epump->readFds);
     }

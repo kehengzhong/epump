@@ -162,7 +162,7 @@ int ioevent_push (void * vepump, int event, void * obj, void * cb, void * cbpara
     EnterCriticalSection(&epump->epcore->eventnumCS);
     epump->epcore->acc_event_num++;
     LeaveCriticalSection(&epump->epcore->eventnumCS);
- 
+
     if (arr_num(epump->epcore->worker_list) <= 0)
         return epump_ioevent_push(epump, ioe);
 
@@ -242,6 +242,10 @@ void * ioevent_execute (void * vpcore, void * vioe)
     iotimer_t  * piot = NULL;
     GeneralCB  * gcb = NULL;
     IOHandler  * iocb = NULL;
+#if defined (HAVE_SELECT)
+    iodev_t    * ptmp = NULL;
+    ulong        curid = 0;
+#endif
 
     DnsMsg     * dnsmsg = NULL;
 
@@ -281,11 +285,30 @@ void * ioevent_execute (void * vpcore, void * vioe)
             ioe->type == IOE_ACCEPT)
             pdev->iostate = IOS_READWRITE;
 
+#if defined (HAVE_SELECT)
+        curid = pdev->id;
+#endif
+
         if (pdev->callback)
             (*pdev->callback)(pdev->cbpara, pdev, ioe->type, pdev->fdtype);
         else if (pcore->callback)
             (*pcore->callback)(pcore->cbpara, pdev, ioe->type, pdev->fdtype);
  
+#if defined (HAVE_SELECT)
+        /* pdev may be closed during the execution of callback */
+
+        ptmp = epcore_iodev_find(pcore, curid);
+
+        if (ioe->type == IOE_INVALID_DEV && ptmp) {
+            iodev_close(ptmp);
+            ptmp = NULL;
+
+        } else if (ptmp && ptmp->fd != INVALID_SOCKET) {
+            /* if underlying fd watching is epoll and ONESHOT mode,
+               READ notify should be added each time after callback */
+            iodev_set_poll(ptmp);
+        }
+#endif
         break;
  
     case IOE_TIMEOUT:

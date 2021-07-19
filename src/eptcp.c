@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -126,8 +126,8 @@ void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
     iodev_t   * pdev = NULL;
     socklen_t   addrlen;
     SOCKET      clifd;
-    struct sockaddr cliaddr;
-    struct sockaddr sock;
+    ep_sockaddr_t  cliaddr;
+    ep_sockaddr_t  sock;
  
     if (retval) *retval = -1;
     if (!pcore || !listendev) return NULL;

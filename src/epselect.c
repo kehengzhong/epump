@@ -125,7 +125,7 @@ int epump_select_dispatch (void * veps, btime_t * delay)
     int        addrlen;
     rbtnode_t * rbt = NULL;
     struct timeval * waitout, timeout;
-    struct sockaddr  sock;
+    ep_sockaddr_t    sock;
 
     if (!epump) return -1;
 
@@ -183,6 +183,8 @@ int epump_select_dispatch (void * veps, btime_t * delay)
         if (pdev->rwflag & RWF_READ && FD_ISSET(pdev->fd, &rFds)) {
             nfds--;
             if (pdev->fdtype == FDT_LISTEN) {
+                epump_select_clearpoll(epump, pdev);
+
                 PushConnAcceptEvent(epump, pdev);
 
 #ifdef HAVE_EVENTFD
@@ -193,6 +195,8 @@ int epump_select_dispatch (void * veps, btime_t * delay)
                 epcore_wakeup_recv(pcore);
 
             } else {
+                epump_select_clearpoll(epump, pdev);
+
                 PushReadableEvent(epump, pdev);
             }
         }
