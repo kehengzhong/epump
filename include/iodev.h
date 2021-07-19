@@ -121,6 +121,9 @@ void * iodev_new_from_fd (void * vpcore, SOCKET fd, int fdtype,
 
 int      iodev_rwflag_set(void * vpdev, uint8 rwflag);
 
+int      iodev_set_poll   (void * vdev);
+int      iodev_clear_poll (void * vdev);
+
 int      iodev_add_notify (void * vpdev, uint8 rwflag);
 int      iodev_del_notify (void * vpdev, uint8 rwflag);
 
