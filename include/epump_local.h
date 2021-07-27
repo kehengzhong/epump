@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -15,6 +15,11 @@
 
 #ifdef HAVE_EPOLL
 #include <sys/epoll.h>
+
+#elif defined(HAVE_KQUEUE)
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
 #endif
 
 #ifdef __cplusplus      
@@ -30,6 +35,10 @@ typedef struct EPump_ {
     int                epoll_size;      /* maximum concurrent FD for monitoring, get from conf */
     int                epoll_fd;        /* epoll file descriptor */
     struct epoll_event * epoll_events;
+  #elif defined(HAVE_KQUEUE)
+    int                kqueue_fd;        /* kqueue file descriptor */
+    int                kqueue_size;      /* maximum concurrent FD for monitoring, get from conf */
+    struct kevent    * kqueue_events;
   #else
     CRITICAL_SECTION   fdsetCS;
     fd_set             readFds;         /* read file descriptor set */

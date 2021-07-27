@@ -1,7 +1,9 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
+
+#ifdef HAVE_SELECT
 
 #ifndef _EPSELECT_H_
 #define _EPSELECT_H_
@@ -24,4 +26,5 @@ int epump_select_dispatch (void * veps, btime_t * delay);
 
 #endif
 
+#endif
 
