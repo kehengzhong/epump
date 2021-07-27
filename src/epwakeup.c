@@ -105,6 +105,22 @@ int epcore_wakeup_getmon (void * vpcore, void * veps)
     }
 
     return 0;
+
+#elif defined(HAVE_KQUEUE)
+
+    struct      kevent ev[1];
+
+    if (!pcore) return -1;
+    if (!epump) return -2;
+
+    epump_iodev_add(epump, pcore->wakeupdev);
+    memset(ev, 0 ,sizeof(ev));
+
+    EV_SET(ev, pcore->wakeupfd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, (void*)pcore->wakeupdev);
+    kevent(epump->kqueue_fd, ev, 1, NULL, 0, NULL);
+
+    return 0;
+
 #elif defined(HAVE_SELECT)
 
     if (!pcore) return -1;
@@ -126,6 +142,8 @@ int epump_wakeup_init (void * vepump)
     iodev_t   * pdev = NULL;
 #ifdef HAVE_EPOLL
     struct epoll_event ev = { 0, {0} };
+#elif defined(HAVE_KQUEUE)
+    struct kevent ev[1];
 #endif
  
     if (!epump) return -1;
@@ -153,6 +171,13 @@ int epump_wakeup_init (void * vepump)
             epoll_ctl(epump->epoll_fd, EPOLL_CTL_MOD, epump->wakeupfd, &ev);
     }
 
+#elif defined(HAVE_KQUEUE)
+
+    memset(ev, 0 ,sizeof(ev));
+
+    EV_SET(ev, epump->wakeupfd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, (void*)epump->wakeupdev);
+    kevent(epump->kqueue_fd, ev, 1, NULL, 0, NULL);
+
 #elif defined(HAVE_SELECT)
 
     if (!FD_ISSET(epump->wakeupfd, &epump->readFds)) {
@@ -169,13 +194,21 @@ int epump_wakeup_clean (void * vepump)
     epump_t  * epump = (epump_t *)vepump;
 #ifdef HAVE_EPOLL
     struct epoll_event ev = { 0, {0} };
+#elif defined(HAVE_KQUEUE)
+    struct kevent ev[1];
 #endif
- 
+
     if (!epump) return -1;
- 
+
     if (epump_iodev_del(epump, epump->wakeupfd) != NULL) {
 #ifdef HAVE_EPOLL
         epoll_ctl(epump->epoll_fd, EPOLL_CTL_DEL, epump->wakeupfd, &ev);
+
+#elif defined(HAVE_KQUEUE)
+        memset(ev, 0 ,sizeof(ev));
+        EV_SET(ev, epump->wakeupfd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+        kevent(epump->kqueue_fd, ev, 1, NULL, 0, NULL);
+
 #elif defined(HAVE_SELECT)
         if (FD_ISSET(epump->wakeupfd, &epump->readFds)) {
             FD_CLR(epump->wakeupfd, &epump->readFds);
@@ -299,7 +332,7 @@ int epcore_wakeup_send (void * vpcore)
     ret = sendto (pcore->informfd, "a", 1, 0,
               (struct sockaddr *) &addr, sizeof(addr));
 
-    return 0;
+    return ret;
 }
 
 
@@ -360,8 +393,24 @@ int epcore_wakeup_getmon (void * vpcore, void * veps)
     }
  
     return 0;
-#else
- 
+
+#elif defined(HAVE_KQUEUE)
+
+    struct      kevent ev[1];
+
+    if (!pcore) return -1;
+    if (!epump) return -2;
+
+    epump_iodev_add(epump, pcore->wakeupdev);
+    memset(ev, 0 ,sizeof(ev));
+
+    EV_SET(ev, pcore->wakeupfd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, (void*)pcore->wakeupdev);
+    kevent(epump->kqueue_fd, ev, 1, NULL, 0, NULL);
+
+    return 0;
+
+#elif defined(HAVE_SELECT)
+
     if (!pcore) return -1;
     if (!epump) return -2;
  
