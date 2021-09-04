@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "epump", "epump.vcproj", "{C27E7D2C-5F93-43C6-8460-6FA325FE33C5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C27E7D2C-5F93-43C6-8460-6FA325FE33C5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C27E7D2C-5F93-43C6-8460-6FA325FE33C5}.Debug|Win32.Build.0 = Debug|Win32
+		{C27E7D2C-5F93-43C6-8460-6FA325FE33C5}.Release|Win32.ActiveCfg = Release|Win32
+		{C27E7D2C-5F93-43C6-8460-6FA325FE33C5}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
