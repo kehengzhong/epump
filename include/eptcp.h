@@ -12,10 +12,12 @@ extern "C" {
 
 void * eptcp_listen_create (void * vpcore, char * localip, int port,
                             void * para, int * retval,
-                            IOHandler * cb, void * cbpara);
+                            IOHandler * cb, void * cbpara,
+                            iodev_t ** devlist, int * devnum);
 
 void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int * retval,
-                     IOHandler * cb, void * cbpara, int bindtype);
+                     IOHandler * cb, void * cbpara, int bindtype,
+                     void ** plist, int * listnum);
 
 /* Note: automatically detect if Linux kernel supported REUSEPORT.
    if supported, create listen socket for every current running epump threads

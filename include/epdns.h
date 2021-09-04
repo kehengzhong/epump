@@ -353,7 +353,8 @@ typedef struct dns_mgmt_s {
     CRITICAL_SECTION   cacheCS;
     hashtab_t        * cache_table;
  
-    iodev_t          * cli_dev;
+    int                cli_dev_num;
+    iodev_t          * cli_dev[4];
  
     uint32             msgid;
     hashtab_t        * msg_table;

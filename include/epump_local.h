@@ -79,7 +79,7 @@ typedef struct EPump_ {
 
     /* current threads management */
     ulong              threadid;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     HANDLE             epumphandle;
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -29,7 +29,7 @@ typedef struct Worker_s {
 
     /* current threads management */
     ulong              threadid;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     HANDLE             hworker;
 #endif
 

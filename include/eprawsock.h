@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -7,7 +7,7 @@
 #define _EPRAWSOCK_H_
 
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
 
 #if _MSC_VER > 1000
 #pragma once

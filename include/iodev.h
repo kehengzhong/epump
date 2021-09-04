@@ -9,6 +9,7 @@
 #include "btype.h"
 #include "tsock.h"
 #include "mthread.h"
+#include "frame.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,6 +70,10 @@ typedef struct IODevice_ {
     SOCKET      fd;
     int         fdtype; 
 
+    int         family;
+    int         socktype;
+    int         protocol;
+
     void      * para;
     IOHandler * callback;
     void      * cbpara;
@@ -80,7 +85,15 @@ typedef struct IODevice_ {
 
     uint8       rwflag;
     uint8       iostate;
-    uint32      epev;
+
+#ifdef HAVE_IOCP
+    void          * devfifo;
+    frame_t       * rcvfrm;
+    ep_sockaddr_t   sock;
+    int             socklen;
+    int             iocprecv;
+    int             iocpsend;
+#endif
 
     void      * iot;
 

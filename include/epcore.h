@@ -34,6 +34,10 @@ typedef struct EPCore_ {
      */
     int                dispmode;
 
+#ifdef HAVE_IOCP
+    HANDLE             iocp_port;
+#endif
+
     /* wake up the epoll_wait/select while waiting in block for the fd-set ready */
 #ifdef HAVE_EVENTFD
     int                wakeupfd;

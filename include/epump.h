@@ -184,7 +184,8 @@ char * mlisten_lip   (void * vmln);
 
 
 void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int * retval,
-                     IOHandler * cb, void * cbpara, int bindtype);
+                     IOHandler * cb, void * cbpara, int bindtype,
+                     void ** plist, int * listnum);
  
 /* Note: automatically detect if Linux kernel supported REUSEPORT. 
    if supported, create listen socket for every current running epump threads
@@ -201,15 +202,22 @@ void * eptcp_connect (void * vpcore, char * ip, int port,
                       char * localip, int localport, void * para,
                       int * retval, IOHandler * cb, void * cbpara);
 
+void * eptcp_nb_connect (void * vpcore, char * host, int port,
+                         char * localip, int localport, void * para,
+                         int * retval, IOHandler * cb, void * cbpara);
 
-void * epudp_listen (void * vpcore, char * localip, int port,
-                     void * para, int * retval, IOHandler * cb, void * cbpara);
+
+void * epudp_listen (void * vpcore, char * localip, int port, void * para, int * pret,
+                     IOHandler * cb, void * cbpara, int bindtype, void ** plist, int * listnum);
  
-void * epudp_client (void * veps, char * localip, int port,
-                     void * para, int * retval, IOHandler * cb, void * cbpara);
-
 void * epudp_mlisten (void * vpcore, char * localip, int port, void * para,
                       IOHandler * cb, void * cbpara);
+ 
+void * epudp_client (void * vpcore, char * localip, int port, 
+                     void * para, int * retval, IOHandler * cb, void * cbpara,
+                     iodev_t ** devlist, int * devnum);
+
+int    epudp_recvfrom (void * vdev, void * vfrm, void * addr, int * pnum);
 
 
 void * epusock_connect (void * vpcore, char * sockname, void * para,
