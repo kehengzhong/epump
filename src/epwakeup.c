@@ -12,6 +12,11 @@
 #include "iodev.h"
 #include "epwakeup.h"
 
+#ifdef HAVE_IOCP
+#include "epiocp.h"
+#endif
+
+
 #ifdef HAVE_EVENTFD
 
 #ifdef UNIX
@@ -249,6 +254,69 @@ int epump_wakeup_recv (void * vepump)
     return 0;
 }
  
+#elif defined(HAVE_IOCP)
+
+int epcore_wakeup_init (void * vpcore)
+{
+    return 0;
+}
+
+int epcore_wakeup_clean (void * vpcore)
+{
+    return 0;
+}
+
+int epcore_wakeup_send (void * vpcore)
+{
+    epcore_t * pcore = (epcore_t *)vpcore;
+    int        i;
+
+    if (!pcore) return -1;
+
+    for (i = 0; i < arr_num(pcore->epump_list); i++) {
+        PostQueuedCompletionStatus(pcore->iocp_port, 0, (ULONG_PTR)-1, NULL);
+    }
+
+    return 0;
+}
+
+int epcore_wakeup_recv (void * vpcore)
+{
+    return 0;
+}
+
+int epcore_wakeup_getmon (void * vpcore, void * veps)
+{
+    return 0;
+}
+
+int epump_wakeup_init (void * vepump)
+{
+    return 0;
+}
+ 
+int epump_wakeup_clean (void * vepump)
+{
+    return 0;
+}
+ 
+int epump_wakeup_send (void * vepump)
+{
+    epump_t  * epump = (epump_t *)vepump;
+ 
+    if (!epump) return -1;
+ 
+    return epcore_wakeup_send(epump->epcore);
+}
+ 
+int epump_wakeup_recv (void * vepump)
+{
+    epump_t  * epump = (epump_t *)vepump;
+ 
+    if (!epump) return -1;
+ 
+    return epcore_wakeup_recv(epump->epcore);
+}
 
 #else
 
@@ -275,7 +343,7 @@ int epcore_wakeup_init (void * vpcore)
     do {
 
         pcore->informport += 1;
-        pcore->wakeupfd = udp_listen(localip, pcore->informport, NULL);
+        pcore->wakeupfd = udp_listen(localip, pcore->informport, NULL, NULL, NULL);
 
     } while (pcore->wakeupfd == INVALID_SOCKET && times++ < 20000);
 
@@ -343,12 +411,12 @@ int epcore_wakeup_recv (void * vpcore)
     struct sockaddr_in addr;
     int len = sizeof(addr);
     int ret = 0;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     u_long  arg = 0;
 #endif
 
     while (1) {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
         arg = 0;
         ret = ioctlsocket(pcore->wakeupfd, FIONREAD, &arg);
         if (ret < 0) break;

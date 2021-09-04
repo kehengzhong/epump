@@ -18,7 +18,7 @@
 #include "epwakeup.h"
 #include "mlisten.h"
  
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
 #include <process.h>
 #endif
  
@@ -26,6 +26,8 @@
 #include "epepoll.h"
 #elif defined(HAVE_KQUEUE)
 #include "epkqueue.h"
+#elif defined(HAVE_IOCP)
+#include "epiocp.h"
 #elif defined(HAVE_SELECT)
 #include "epselect.h"
 #endif
@@ -62,6 +64,15 @@ void * epump_new (epcore_t * pcore)
     epump->delpoll = epump_kqueue_clearpoll;
     epump->fddispatch = epump_kqueue_dispatch;
  
+#elif defined(HAVE_IOCP)
+    if (epump_iocp_init(epump, pcore->maxfd) < 0) {
+        kfree(epump);
+        return NULL;
+    }
+    epump->setpoll = epump_iocp_setpoll;
+    epump->delpoll = epump_iocp_clearpoll;
+    epump->fddispatch = epump_iocp_dispatch;
+
 #elif defined(HAVE_SELECT)
     if (epump_select_init(epump) < 0) {
         kfree(epump);
@@ -143,6 +154,8 @@ void epump_free (void * vepump)
     epump_epoll_clean(epump);
 #elif defined(HAVE_KQUEUE)
     epump_kqueue_clean(epump);
+#elif defined(HAVE_IOCP)
+    epump_iocp_clean(epump);
 #elif defined(HAVE_SELECT)
     epump_select_clean(epump);
 #endif
@@ -200,6 +213,8 @@ void epump_recycle (void * vepump)
     epump_epoll_clean(epump);
 #elif defined(HAVE_KQUEUE)
     epump_kqueue_clean(epump);
+#elif defined(HAVE_IOCP)
+    epump_iocp_clean(epump);
 #elif defined(HAVE_SELECT)
     epump_select_clean(epump);
 #endif
@@ -371,6 +386,9 @@ int epump_objnum (void * veps, int type)
  
 int epump_iodev_add (void * veps, void * vpdev)
 {
+#ifdef HAVE_IOCP
+    return 0;
+#else
     epump_t  * epump = (epump_t *)veps;
     iodev_t  * pdev = (iodev_t *)vpdev;
     iodev_t  * obj = NULL;
@@ -394,8 +412,9 @@ int epump_iodev_add (void * veps, void * vpdev)
     LeaveCriticalSection(&epump->devicetreeCS);
  
     if (obj) iodev_close(obj);
- 
+
     return 0;
+#endif
 }
  
 void * epump_iodev_del (void * veps, SOCKET fd)
@@ -620,7 +639,7 @@ end_epump:
  
  
  
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
 unsigned WINAPI epump_main_thread (void * arg)
 {
 #endif
@@ -635,7 +654,7 @@ void * epump_main_thread (void * arg)
 #ifdef UNIX
     return NULL;
 #endif
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     return 0;
 #endif
 }
@@ -645,7 +664,7 @@ int epump_main_start (void * vpcore, int forkone)
 {
     epcore_t  * pcore = (epcore_t *)vpcore;
     epump_t   * epump = NULL;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     unsigned    thid;
 #endif
 #ifdef UNIX
@@ -664,7 +683,7 @@ int epump_main_start (void * vpcore, int forkone)
         return 0;
     }
  
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     epump->epumphandle = (HANDLE)_beginthreadex(
                                 NULL,
                                 0,

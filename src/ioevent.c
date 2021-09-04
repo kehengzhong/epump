@@ -16,6 +16,10 @@
 #include "ioevent.h"
 #include "epdns.h"
 
+#ifdef HAVE_IOCP
+#include "epiocp.h"
+#endif
+
 
 int ioevent_free (void * vioe)
 {
@@ -242,7 +246,7 @@ void * ioevent_execute (void * vpcore, void * vioe)
     iotimer_t  * piot = NULL;
     GeneralCB  * gcb = NULL;
     IOHandler  * iocb = NULL;
-#if defined (HAVE_SELECT)
+#if defined(HAVE_SELECT) || defined(HAVE_IOCP)
     iodev_t    * ptmp = NULL;
     ulong        curid = 0;
 #endif
@@ -285,7 +289,7 @@ void * ioevent_execute (void * vpcore, void * vioe)
             ioe->type == IOE_ACCEPT)
             pdev->iostate = IOS_READWRITE;
 
-#if defined (HAVE_SELECT)
+#if defined(HAVE_SELECT) || defined(HAVE_IOCP)
         curid = pdev->id;
 #endif
 
@@ -294,7 +298,7 @@ void * ioevent_execute (void * vpcore, void * vioe)
         else if (pcore->callback)
             (*pcore->callback)(pcore->cbpara, pdev, ioe->type, pdev->fdtype);
  
-#if defined (HAVE_SELECT)
+#if defined(HAVE_SELECT) || defined(HAVE_IOCP)
         /* pdev may be closed during the execution of callback */
 
         ptmp = epcore_iodev_find(pcore, curid);
@@ -304,9 +308,25 @@ void * ioevent_execute (void * vpcore, void * vioe)
             ptmp = NULL;
 
         } else if (ptmp && ptmp->fd != INVALID_SOCKET) {
+#ifdef HAVE_IOCP
+            if (ptmp->fdtype == FDT_ACCEPTED || ptmp->fdtype == FDT_CONNECTED) {
+                if (ptmp->rwflag & RWF_READ && ptmp->iostate == IOS_READWRITE) {
+                    iocp_event_recv_post(ptmp, NULL, 0);
+                }
+                if (ptmp->rwflag & RWF_WRITE && ptmp->iostate == IOS_READWRITE) {
+                    iocp_event_send_post(ptmp, NULL, 0, 0);
+                }
+
+            } else if (ptmp->fdtype == FDT_UDPSRV || ptmp->fdtype == FDT_UDPCLI) {
+                if (ptmp->rwflag & RWF_READ && ptmp->iostate == IOS_READWRITE) {
+                    iocp_event_recvfrom_post(ptmp, NULL, 0);
+                }
+            }
+#else
             /* if underlying fd watching is epoll and ONESHOT mode,
                READ notify should be added each time after callback */
             iodev_set_poll(ptmp);
+#endif
         }
 #endif
         break;

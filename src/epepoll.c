@@ -112,7 +112,6 @@ int epump_epoll_setpoll (void * vepump, void * vpdev)
 
     ret = epoll_ctl(epump->epoll_fd, op, pdev->fd, &ev);
     if (ret >= 0) {
-        pdev->epev = curev;
         return 0;
     }
 
@@ -136,8 +135,6 @@ int epump_epoll_setpoll (void * vepump, void * vpdev)
 
     if (ret < 0) return -1;
 
-    pdev->epev = curev;
-
     return 0;
 }
 
@@ -156,9 +153,6 @@ int epump_epoll_clearpoll (void * vepump, void * vpdev)
     memset(&ev, 0, sizeof(ev));
 
     ret = epoll_ctl(epump->epoll_fd, EPOLL_CTL_DEL, pdev->fd, &ev);
-    if (ret >= 0) {
-        pdev->epev = 0;
-    }
 
     return ret;
 }

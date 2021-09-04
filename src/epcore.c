@@ -22,6 +22,10 @@
 #include "mlisten.h"
 #include "epdns.h"
 
+#ifdef HAVE_IOCP
+#include "epiocp.h"
+#endif
+
 #ifdef UNIX
 
 #include <sys/resource.h>
@@ -63,11 +67,11 @@ static int set_fd_limit(int max)
 void * epcore_new (int maxfd, int dispmode)
 {
     epcore_t * pcore = NULL;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     WSADATA wsd;
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     if (WSAStartup (MAKEWORD(2,2), &wsd) != 0) {
         return NULL;
     }
@@ -93,6 +97,10 @@ void * epcore_new (int maxfd, int dispmode)
     pcore->wakeupfd = INVALID_SOCKET;
 #endif
     pcore->wakeupdev = NULL;
+
+#ifdef HAVE_IOCP
+    epcore_iocp_init(pcore);
+#endif
 
     /* initialize memory pool resource */
     if (!pcore->device_pool) {
@@ -215,6 +223,10 @@ void epcore_clean (void * vpcore)
 
     epcore_wakeup_clean(pcore);
 
+#ifdef HAVE_IOCP
+    epcore_iocp_clean(pcore);
+#endif
+
     /* release all memory pool resource */
     bpool_clean(pcore->timer_pool);
     bpool_clean(pcore->device_pool);
@@ -223,7 +235,7 @@ void epcore_clean (void * vpcore)
 
     kfree(pcore);
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     WSACleanup();
 #endif
 }

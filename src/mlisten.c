@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -14,6 +14,10 @@
 #include "eptcp.h"
 #include "epudp.h"
 #include "mlisten.h"
+
+#ifdef HAVE_IOCP
+#include "epiocp.h"
+#endif
 
 
 void * mlisten_alloc (char * localip, int port, int fdtype, void * para, IOHandler * cb, void * cbpara)
@@ -171,10 +175,16 @@ void * epcore_mlisten_del (void * epcore, void * vmln)
  
 int epcore_mlisten_create (void * epcore, void * vepump)
 {
+#ifdef HAVE_IOCP
+    return 0;
+#else
     epcore_t   * pcore = (epcore_t *)epcore;
     epump_t    * epump = (epump_t *)vepump;
     mlisten_t  * mln = 0;
     iodev_t    * pdev = NULL;
+    iodev_t    * devlist[16];
+    int          devnum = 16;
+    int          iter = 0;
     int          i, num;
     int          ret = 0;
  
@@ -199,45 +209,124 @@ int epcore_mlisten_create (void * epcore, void * vepump)
 
         if (mln->fdtype == FDT_LISTEN) {
             if (mln->reuseport || pdev == NULL) {
-                pdev = eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                            &ret, mln->cb, mln->cbpara);
-                if (pdev && pdev->reuseport)
-                    mln->reuseport = 1;
+                devnum = 16;
+                eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                                     &ret, mln->cb, mln->cbpara, devlist, &devnum);
+                for (iter = 0; iter < devnum; iter++) {
+                    pdev = devlist[iter];
+                    if (pdev && pdev->reuseport)
+                        mln->reuseport = 1;
+ 
+                    mlisten_iodev_add(mln, pdev);
+                }
             }
         } else if (mln->fdtype == FDT_UDPSRV) {
             if (mln->reuseport || pdev == NULL) {
-                pdev = epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                            &ret, mln->cb, mln->cbpara);
-                if (pdev && pdev->reuseport)
-                    mln->reuseport = 1;
+                devnum = 16;
+                epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                                     &ret, mln->cb, mln->cbpara, devlist, &devnum);
+                for (iter = 0; iter < devnum; iter++) {
+                    pdev = devlist[iter];
+                    if (pdev && pdev->reuseport)
+                        mln->reuseport = 1;
+ 
+                    mlisten_iodev_add(mln, pdev);
+                }
             }
         }
 
-        if (!pdev) continue;
- 
-        mlisten_iodev_add(mln, pdev);
+        for (iter = 0; iter < arr_num(mln->devlist); iter++) {
+            pdev = arr_value(mln->devlist, iter);
 
-        pdev->bindtype = BIND_NEW_FOR_EPUMP; //4
-        pdev->epump = epump;
+            pdev->bindtype = BIND_NEW_FOR_EPUMP; //4
+            pdev->epump = epump;
  
-        epump_iodev_add(epump, pdev);
+            epump_iodev_add(epump, pdev);
  
-        if (epump->setpoll)
-            (*epump->setpoll)(epump, pdev);
+            if (epump->setpoll)
+                (*epump->setpoll)(epump, pdev);
+        }
     }
  
     LeaveCriticalSection(&pcore->glbmlistenlistCS);
  
     return 0;
+#endif
 }
  
  
 void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
                      void * para, IOHandler * cb, void * cbpara)
 {
+#ifdef HAVE_IOCP
     epcore_t   * pcore = (epcore_t *)epcore;
     mlisten_t  * mln = NULL;
     iodev_t    * pdev = NULL;
+    iodev_t    * devlist[16];
+    int          devnum = 16;
+    int          i, j;
+    int          ret = 0;
+
+    if (!pcore) return NULL;
+    if (port <= 0 || port >= 65536) return NULL;
+ 
+    mln = epcore_mlisten_get(pcore, localip, port, fdtype);
+    if (!mln) {
+        mln = mlisten_alloc(localip, port, fdtype, para, cb, cbpara);
+        if (mln)
+            epcore_mlisten_add(pcore, mln);
+    }
+    if (!mln) return NULL;
+
+    devnum = 16; 
+    if (mln->fdtype == FDT_LISTEN) {
+        eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                             &ret, mln->cb, mln->cbpara, devlist, &devnum);
+    } else if (mln->fdtype == FDT_UDPSRV) {
+        epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                             &ret, mln->cb, mln->cbpara, devlist, &devnum);
+    } else {
+        return NULL;
+    }
+
+    for (i = 0; i < devnum; i++) { 
+        pdev = devlist[i]; 
+        if (!pdev) continue;
+
+        if (pdev->reuseport)
+            mln->reuseport = 1; 
+
+        mlisten_iodev_add(mln, pdev);
+
+        pdev->bindtype = BIND_NEW_FOR_EPUMP; //4
+
+        epump_iocp_setpoll(NULL, pdev);
+
+        if (mln->fdtype == FDT_LISTEN) {
+            /* now Post 128 overlapped Accept packet to Completion Port
+             * waiting for client connection */
+            for (j = 0; j < 128; j++) {
+                iocp_event_accept_post(pdev);
+            }
+        } else if (mln->fdtype == FDT_UDPSRV) {
+            /* now Post 128 overlapped WSARecvFrom packet to Completion Port
+             * waiting for client datagram coming */
+            for (j = 0; j < 1; j++) {
+                iocp_event_recvfrom_post(pdev, NULL, 0);
+            }
+        }
+    }
+
+    return mln;
+
+#else
+
+    epcore_t   * pcore = (epcore_t *)epcore;
+    mlisten_t  * mln = NULL;
+    iodev_t    * pdev = NULL;
+    iodev_t    * devlist[16];
+    int          devnum = 16;
+    int          iter = 0;
     int          ret = 0;
     int          i, num;
     epump_t    * epump = NULL;
@@ -271,36 +360,50 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
  
         if (mln->fdtype == FDT_LISTEN) {
             if (mln->reuseport || pdev == NULL) {
-                pdev = eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                            &ret, mln->cb, mln->cbpara);
+                devnum = 16;
+                eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                                     &ret, mln->cb, mln->cbpara, devlist, &devnum);
+                for (iter = 0; iter < devnum; iter++) {
+                    pdev = devlist[iter];
+                    if (!pdev) continue;
 
-                if (pdev && pdev->reuseport)
-                    mln->reuseport = 1;
+                    if (pdev->reuseport) mln->reuseport = 1;
+
+                    mlisten_iodev_add(mln, pdev);
+                }
             }
 
         } else if (mln->fdtype == FDT_UDPSRV) {
             if (mln->reuseport || pdev == NULL) {
-                pdev = epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                            &ret, mln->cb, mln->cbpara);
+                devnum = 16;
+                epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
+                                     &ret, mln->cb, mln->cbpara, devlist, &devnum);
+                for (iter = 0; iter < devnum; iter++) {
+                    pdev = devlist[iter];
+                    if (!pdev) continue;
 
-                if (pdev && pdev->reuseport)
-                    mln->reuseport = 1;
+                    if (pdev->reuseport) mln->reuseport = 1;
+
+                    mlisten_iodev_add(mln, pdev);
+                }
             }
         }
-        if (!pdev) continue;
- 
-        mlisten_iodev_add(mln, pdev);
 
-        pdev->bindtype = BIND_NEW_FOR_EPUMP; //4
-        pdev->epump = epump;
+        for (iter = 0; iter < arr_num(mln->devlist); iter++) {
+            pdev = arr_value(mln->devlist, iter);
+
+            pdev->bindtype = BIND_NEW_FOR_EPUMP; //4
+            pdev->epump = epump;
  
-        epump_iodev_add(epump, pdev);
-        (*epump->setpoll)(epump, pdev);
+            epump_iodev_add(epump, pdev);
+            (*epump->setpoll)(epump, pdev);
+        }
     }
  
     LeaveCriticalSection(&pcore->epumplistCS);
  
     return mln;
+#endif
 }
 
 int mlisten_close (void * vmln)

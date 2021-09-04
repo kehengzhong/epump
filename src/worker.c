@@ -14,7 +14,7 @@
 #include "iodev.h"
 #include "ioevent.h"
  
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
 #include <process.h>
 #endif
  
@@ -346,7 +346,7 @@ end_worker:
 
 
  
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
 unsigned WINAPI worker_proc_entry (void * arg)
 {
 #endif
@@ -373,7 +373,7 @@ void * worker_proc_entry (void * arg)
 #ifdef UNIX
     return NULL;
 #endif
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     return 0;
 #endif
 }
@@ -383,7 +383,7 @@ int worker_main_start (void * vpcore, int forkone)
 {
     epcore_t  * pcore = (epcore_t *)vpcore;
     worker_t  * wker = NULL;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     HANDLE      hpth;
     unsigned    thid;
 #endif
@@ -403,7 +403,7 @@ int worker_main_start (void * vpcore, int forkone)
          return 0;
     }
  
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     hpth = (HANDLE)_beginthreadex(
                                 NULL,
                                 0,

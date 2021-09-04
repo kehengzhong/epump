@@ -6,6 +6,7 @@
 #include "btype.h"
 #include "mthread.h"
 #include "memory.h"
+#include "arfifo.h"
 
 #include "epcore.h"
 #include "epump_local.h"
@@ -13,6 +14,10 @@
 #include "iodev.h"
 #include "ioevent.h"
 #include "worker.h"
+
+#ifdef HAVE_IOCP
+#include "epiocp.h"
+#endif
 
 
 iodev_t * iodev_alloc ()
@@ -66,7 +71,7 @@ void iodev_free (void * vpdev)
             #ifdef UNIX
                 shutdown(pdev->fd, SHUT_RDWR);
             #endif
-            #ifdef _WIN32
+            #if defined(_WIN32) || defined(_WIN64)
                 shutdown(pdev->fd, 0x01);//SD_SEND);
             #endif
             }
@@ -78,8 +83,16 @@ void iodev_free (void * vpdev)
     pdev->rwflag = 0;
     pdev->fdtype = 0x00;
     pdev->iostate = 0x00;
-#ifdef HAVE_EPOLL
-    pdev->epev = 0;
+
+#ifdef HAVE_IOCP
+    if (pdev->devfifo) {
+        ar_fifo_free_all(pdev->devfifo, iodev_free);
+        pdev->devfifo = NULL;
+    }
+
+    if (pdev->rcvfrm) {
+        frame_delete(&pdev->rcvfrm);
+    }
 #endif
 
     DeleteCriticalSection(&pdev->fdCS);
@@ -166,6 +179,10 @@ void * iodev_new (void * vpcore)
     pdev->fd = INVALID_SOCKET;
     pdev->fdtype = 0;
 
+    pdev->family = 0;
+    pdev->socktype = 0;
+    pdev->protocol = 0;
+
     pdev->remote_ip[0] = '\0';
     pdev->local_ip[0] = '\0';
     pdev->remote_port = 0;
@@ -173,9 +190,6 @@ void * iodev_new (void * vpcore)
 
     pdev->rwflag = 0x00;
     pdev->iostate = 0x00;
-#ifdef HAVE_EPOLL
-    pdev->epev = 0;
-#endif
 
     pdev->epcore = pcore;
     pdev->iot = NULL;
@@ -225,7 +239,6 @@ void iodev_close (void * vdev)
     pdev->callback = NULL;
     pdev->cbpara = NULL;
     pdev->iostate = 0x00;
-    pdev->epev = 0;
 
     if (pdev->iot) {
         iotimer_stop(pdev->iot);
@@ -245,7 +258,7 @@ void iodev_close (void * vdev)
         #ifdef UNIX 
             shutdown(pdev->fd, SHUT_RDWR);
         #endif  
-        #ifdef _WIN32 
+        #if defined(_WIN32) || defined(_WIN64)
             shutdown(pdev->fd, 0x01);//SD_SEND);
         #endif
         } 
@@ -254,6 +267,17 @@ void iodev_close (void * vdev)
         pdev->fd = INVALID_SOCKET;
     }
     LeaveCriticalSection(&pdev->fdCS);
+
+#ifdef HAVE_IOCP
+    if (pdev->devfifo) {
+        ar_fifo_free_all(pdev->devfifo, iodev_close);
+        pdev->devfifo = NULL;
+    }
+
+    if (pdev->rcvfrm) {
+        frame_delete(&pdev->rcvfrm);
+    }
+#endif
 
     bpool_recycle(pcore->device_pool, pdev);
 }
@@ -283,7 +307,7 @@ void iodev_linger_close (void * vdev)
 #ifdef UNIX
         shutdown(pdev->fd, SHUT_WR); //SHUT_RD, SHUT_RDWR
 #endif
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
         shutdown(pdev->fd, 0x01);//SD_SEND=0x01, SD_RECEIVE=0x00, SD_BOTH=0x02);
 #endif
         pdev->fdtype = FDT_LINGER_CLOSE;
@@ -414,7 +438,24 @@ int iodev_add_notify (void * vdev, uint8 rwflag)
     }
     LeaveCriticalSection(&pdev->fdCS);
 
+#ifdef HAVE_IOCP
+    if (pdev->fdtype == FDT_ACCEPTED || pdev->fdtype == FDT_CONNECTED) {
+        if (rwflag & RWF_READ && pdev->iostate == IOS_READWRITE) {
+            iocp_event_recv_post(pdev, NULL, 0);
+        } 
+        if (rwflag & RWF_WRITE && pdev->iostate == IOS_READWRITE) {
+            iocp_event_send_post(pdev, NULL, 0, 0);
+        }
+
+    } else if (pdev->fdtype == FDT_UDPSRV || pdev->fdtype == FDT_UDPCLI) {
+        if (rwflag & RWF_READ && pdev->iostate == IOS_READWRITE) {
+            iocp_event_recvfrom_post(pdev, NULL, 0);
+        } 
+    }
+    return 0;
+#else
     return iodev_set_poll(pdev);
+#endif
 }
 
 int iodev_del_notify (void * vdev, uint8 rwflag)
@@ -442,7 +483,11 @@ int iodev_del_notify (void * vdev, uint8 rwflag)
 
     if (!setpoll) return 0;
 
+#ifdef HAVE_IOCP
+    return 0;
+#else
     return iodev_set_poll(pdev);
+#endif
 }
 
 
@@ -481,9 +526,22 @@ int iodev_unbind_epump (void * vdev)
 
 int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
 {
+#ifdef HAVE_IOCP
     iodev_t   * pdev = (iodev_t *)vdev;
-    epump_t   * epump = (epump_t *)vepump;
+
+    if (!pdev) return -1;
+
+    pdev->epump = vepump;
+    if (!pdev->epump)
+        pdev->epump = epump_thread_select(pdev->epcore);
+    pdev->bindtype = BIND_ONE_EPUMP;
+
+    return epump_iocp_setpoll(NULL, pdev);
+
+#else
+    iodev_t   * pdev = (iodev_t *)vdev;
     epcore_t  * pcore = NULL;
+    epump_t   * epump = (epump_t *)vepump;
     worker_t  * wker = NULL;
     epump_t   * curep = NULL;
     ioevent_t * ioe = NULL;
@@ -581,6 +639,7 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
     }
 
     return 1;
+#endif
 }
 
 

@@ -6,6 +6,8 @@
 #include "btype.h"
 #include "tsock.h"
 #include "strutil.h"
+#include "arfifo.h"
+#include "trace.h"
 
 #include "epcore.h"
 #include "epump_local.h"
@@ -14,20 +16,139 @@
 #include "mlisten.h"
 #include "epdns.h"
 
+#ifdef HAVE_IOCP
+#include "epiocp.h"
+#endif
+
+
+SOCKET tcp_listen_all (char * localip, int port, void * psockopt,
+                        sockattr_t * fdlist, int * fdnum)
+{
+    struct addrinfo    hints;
+    struct addrinfo  * result = NULL;
+    struct addrinfo  * rp = NULL;
+    SOCKET             aifd = INVALID_SOCKET;
+    char               buf[128];
+ 
+    SOCKET             listenfd = INVALID_SOCKET;
+    sockopt_t        * sockopt = NULL;
+    int                num = 0;
+    int                rpnum = 0;
+    int                one = 0;
+    int                backlog = 511;
+    int                ret = 0;
+ 
+    sockopt = (sockopt_t *)psockopt;
+ 
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;       /* Allow IPv4 or IPv6 */
+    hints.ai_socktype = SOCK_STREAM;   /* Datagram socket */
+    hints.ai_flags = AI_PASSIVE;       /* For wildcard IP address */
+    hints.ai_protocol = IPPROTO_TCP;   /* TCP protocol */
+    hints.ai_canonname = NULL;
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
+ 
+    sprintf(buf, "%d", port);
+ 
+    if (localip && strlen(localip) <= 1)
+        localip = NULL;
+ 
+    aifd = getaddrinfo(localip, buf, &hints, &result);
+    if (aifd != 0) {
+        if (result) freeaddrinfo(result);
+        tolog(1, "getaddrinfo: %s:%s return %d\n", localip, buf, aifd);
+        return -100;
+    }
+ 
+    /* getaddrinfo() returns a list of address structures.
+       Try each address until we successfully bind(2).
+       If socket(2) (or bind(2)) fails, we (close the socket
+       and) try the next address. */
+ 
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        rpnum++;
+ 
+#ifdef HAVE_IOCP
+        listenfd = WSASocket(rp->ai_family, rp->ai_socktype, rp->ai_protocol,
+                             NULL, 0, WSA_FLAG_OVERLAPPED);
+#else
+        listenfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+#endif
+        if (listenfd == INVALID_SOCKET) {
+            tolog(1, "tcp_listen_all socket() failed");
+            continue;
+        }
+ 
+        if (sockopt) {
+            if (sockopt->mask & SOM_BACKLOG)
+                backlog = sockopt->backlog;
+            sock_option_set(listenfd, sockopt);
+ 
+        } else { //set the default options
+            one = 1;
+            ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (void *)&one, sizeof(int));
+            if (ret != 0) perror("TCPListen REUSEADDR");
+#ifdef SO_REUSEPORT
+            ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEPORT, (void *)&one, sizeof(int));
+            if (ret != 0) perror("TCPListen REUSEPORT");
+#endif
+            ret = setsockopt(listenfd, SOL_SOCKET, SO_KEEPALIVE, (void *)&one, sizeof(int));
+            if (ret != 0) perror("TCPListen KEEPALIVE");
+        }
+ 
+        if (bind(listenfd, rp->ai_addr, rp->ai_addrlen) != 0) {
+            tolog(1, "tcp_listen_all bind() failed");
+            closesocket(listenfd);
+            listenfd = INVALID_SOCKET;
+            continue;
+        }
+ 
+        if (backlog <= 0) backlog = 511;
+        if (listen(listenfd, backlog) == SOCKET_ERROR) {
+            tolog(1, "tcp_listen_all fd=%d failed", listenfd);
+            closesocket(listenfd);
+            listenfd = INVALID_SOCKET;
+            continue;
+        }
+ 
+        if (fdlist && fdnum && num < *fdnum) {
+            fdlist[num].fd = listenfd;
+            fdlist[num].family = rp->ai_family;
+            fdlist[num].socktype = rp->ai_socktype;
+            fdlist[num].protocol = rp->ai_protocol;
+            num++;
+        } else
+            break;
+    }
+    freeaddrinfo(result);
+ 
+    if (fdnum) *fdnum = num;
+ 
+    if (rpnum <= 0) {
+        tolog(1, "tcp_listen_all no addrinfo available\n");
+        /* there is no address/port that bound or listened successfully! */
+        return INVALID_SOCKET;
+    }
+ 
+    return listenfd;
+}
+
 
 void * eptcp_listen_create (void * vpcore, char * localip, int port, void * para, int * retval,
-                            IOHandler * cb, void * cbpara)
+                            IOHandler * cb, void * cbpara, iodev_t ** devlist, int * devnum)
 {
-    epcore_t * pcore = (epcore_t *)vpcore;
-    iodev_t  * pdev = NULL;
-    sockopt_t  sockopt = {0};
+    epcore_t  * pcore = (epcore_t *)vpcore;
+    iodev_t   * pdev = NULL;
+    sockopt_t   sockopt = {0};
+    SOCKET      fd;
+    sockattr_t  fdlist[16];
+    int         i, fdnum = 16;
+    int         num = 0;
  
     if (retval) *retval = -1;
-    if (!pcore) return NULL;
- 
-    pdev = iodev_new(pcore);
-    if (!pdev) {
-        if (retval) *retval = -100;
+    if (!pcore) {
+        if (devnum) *devnum = 0;
         return NULL;
     }
  
@@ -44,42 +165,74 @@ void * eptcp_listen_create (void * vpcore, char * localip, int port, void * para
     sockopt.mask |= SOM_KEEPALIVE;
     sockopt.keepalive = 1;
 
-    pdev->fd = tcp_listen(localip, port, &sockopt);
-    if (pdev->fd == INVALID_SOCKET) {
-        iodev_close(pdev);
+    fd = tcp_listen_all(localip, port, &sockopt, fdlist, &fdnum);
+    if (fdnum <= 0) {
         if (retval) *retval = -200;
+        if (devnum) *devnum = 0;
         return NULL;
     }
- 
-    pdev->reuseaddr = (sockopt.reuseaddr_ret == 0) ? 1 : 0;
-    pdev->reuseport = (sockopt.reuseport_ret == 0) ? 1 : 0;
-    pdev->keepalive = (sockopt.keepalive_ret == 0) ? 1 : 0;
 
-    sock_nonblock_set(pdev->fd, 1);
- 
-    if (localip)
-        strncpy(pdev->local_ip, localip, sizeof(pdev->local_ip)-1);
-    pdev->local_port = port;
+    for (i = 0; i < fdnum; i++) {
+        pdev = iodev_new(pcore);
+        if (!pdev) break;
 
-    pdev->para = para;
-    pdev->callback = cb;
-    pdev->cbpara = cbpara;
- 
-    pdev->iostate = IOS_ACCEPTING;
-    pdev->fdtype = FDT_LISTEN;
- 
-    iodev_rwflag_set(pdev, RWF_READ);
+        pdev->fd = fdlist[i].fd;
+        pdev->family = fdlist[i].family;
+        pdev->socktype = fdlist[i].socktype;
+        pdev->protocol = fdlist[i].protocol;
 
-    if (retval) *retval = 0;
+        pdev->reuseaddr = (sockopt.reuseaddr_ret == 0) ? 1 : 0;
+        pdev->reuseport = (sockopt.reuseport_ret == 0) ? 1 : 0;
+        pdev->keepalive = (sockopt.keepalive_ret == 0) ? 1 : 0;
+
+        sock_nonblock_set(pdev->fd, 1);
+
+        if (localip)
+            strncpy(pdev->local_ip, localip, sizeof(pdev->local_ip)-1);
+        pdev->local_port = port;
+
+        pdev->para = para;
+        pdev->callback = cb;
+        pdev->cbpara = cbpara;
+
+        pdev->iostate = IOS_ACCEPTING;
+        pdev->fdtype = FDT_LISTEN;
+
+        iodev_rwflag_set(pdev, RWF_READ);
+
+        if (devlist && devnum && num < *devnum)
+            devlist[num++] = pdev;
+        else
+            break;
+    }
+
+    for ( ; i < fdnum; i++) {
+        closesocket(fdlist[i].fd);
+        fdlist[i].fd = INVALID_SOCKET;
+    }
+
+    if (devnum) *devnum = num;
+    if (retval && num <= 0) *retval = -100;
+    else if (retval) *retval = 0;
+
+    if (pdev == NULL && num > 0 && devlist && devnum)
+        pdev = devlist[0];
 
     return pdev;
 }
  
 void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int * pret,
-                     IOHandler * cb, void * cbpara, int bindtype)
+                     IOHandler * cb, void * cbpara, int bindtype, void ** plist, int * listnum)
 {
     epcore_t * pcore = (epcore_t *)vpcore;
     iodev_t  * pdev = NULL;
+    iodev_t  * devlist[16];
+    int        devnum = 16;
+    int        i = 0;
+#ifdef HAVE_IOCP
+    int        j = 0;
+#endif
+    int        num = 0;
  
     if (pret) *pret = -1;
     if (!pcore) return NULL;
@@ -89,17 +242,32 @@ void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int *
 
     if (bindtype != BIND_NONE      && 
         bindtype != BIND_ONE_EPUMP && 
+        bindtype != BIND_CURRENT_EPUMP &&
         bindtype != BIND_ALL_EPUMP)
         return NULL;
 
-    pdev = eptcp_listen_create(pcore, localip, port, para, pret, cb, cbpara);
-    if (!pdev) {
+    pdev = eptcp_listen_create(pcore, localip, port, para, pret,
+                               cb, cbpara, devlist, &devnum);
+    if (devnum <= 0) {
         return NULL;
     }
  
-    /* bind one/more epump threads according to bindtype */
-    iodev_bind_epump(pdev, bindtype, NULL);
+    for (i = 0; i < devnum; i++) {
+        /* bind one/more epump threads according to bindtype */
+        iodev_bind_epump(devlist[i], bindtype, NULL);
+
+        if (plist && listnum && i < *listnum)
+            plist[num++] = devlist[i];
+
+#ifdef HAVE_IOCP
+        /* now Post 128 overlapped Accept packet to Completion Port
+         * waiting for client connection */
+        for (j = 0; j < 128; j++)
+            iocp_event_accept_post(devlist[i]);
+#endif
+    }
  
+    if (listnum) *listnum = num;
     if (pret) *pret = 0;
 
     return pdev;
@@ -124,14 +292,26 @@ void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * listendev = (iodev_t *)vld;
     iodev_t   * pdev = NULL;
+#ifndef HAVE_IOCP
     socklen_t   addrlen;
     SOCKET      clifd;
     ep_sockaddr_t  cliaddr;
     ep_sockaddr_t  sock;
- 
+#endif
+
     if (retval) *retval = -1;
     if (!pcore || !listendev) return NULL;
  
+#ifdef HAVE_IOCP
+
+    pdev = ar_fifo_out(listendev->devfifo);
+    if (!pdev) {
+        if (retval) *retval = -100;
+        return NULL;
+    }
+
+#else
+
     addrlen = sizeof(cliaddr);
 
     EnterCriticalSection(&listendev->fdCS);
@@ -149,22 +329,20 @@ void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
 #ifdef UNIX
         shutdown(clifd, SHUT_RDWR);
 #endif
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
         shutdown(clifd, 0x02);//SD_RECEIVE=0x00, SD_SEND=0x01, SD_BOTH=0x02);
 #endif
         closesocket(clifd);
         return NULL;
     }
  
-    /* indicates the current worker thread will handle the upcoming read/write event */
-    if (pcore->dispmode == 1)
-        pdev->threadid = get_threadid();
-
     pdev->fd = clifd;
+    pdev->family = cliaddr.u.addr.sa_family;
+    pdev->socktype = listendev->socktype;
+    pdev->protocol = listendev->protocol;
+
     sock_addr_ntop(&cliaddr, pdev->remote_ip);
     pdev->remote_port = sock_addr_port(&cliaddr);
- 
-    sock_nonblock_set(pdev->fd, 1);
  
     addrlen = sizeof(sock);
     if (getsockname(pdev->fd, (struct sockaddr *)&sock, (socklen_t *)&addrlen) == 0) {
@@ -172,6 +350,14 @@ void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
         pdev->local_port = sock_addr_port(&sock);
     }
     pdev->local_port = listendev->local_port;
+ 
+#endif
+
+    /* indicates the current worker thread will handle the upcoming read/write event */
+    if (pcore->dispmode == 1)
+        pdev->threadid = get_threadid();
+
+    sock_nonblock_set(pdev->fd, 1);
  
     pdev->fdtype = FDT_ACCEPTED;
     pdev->iostate = IOS_READWRITE;
@@ -187,6 +373,10 @@ void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
     /* epump is system-decided: select one lowest load epump thread to be bound */
     iodev_bind_epump(pdev, bindtype, NULL);
 
+#ifdef HAVE_IOCP
+    iocp_event_recv_post(pdev, NULL, 0);
+#endif
+
     return pdev;
 }
  
@@ -197,7 +387,10 @@ void * eptcp_connect (void * vpcore, char * host, int port,
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * pdev = NULL;
     int         succ = 0;
- 
+#ifndef HAVE_IOCP
+    sockattr_t  attr;
+#endif
+
     if (retval) *retval = -1;
     if (!pcore) return NULL;
  
@@ -220,20 +413,33 @@ void * eptcp_connect (void * vpcore, char * host, int port,
         pdev->cbpara = cbpara;
     }
  
-    pdev->fd = tcp_nb_connect(host, port, localip, localport, &succ);
+#ifdef HAVE_IOCP
+
+    iocp_event_connect_post(pdev, host, port, localip, localport, &succ);
+    if (succ < 0) {
+        iodev_close(pdev);
+        if (retval) *retval = -30;
+        return NULL;
+    }
+
+#else
+
+    pdev->fd = tcp_nb_connect(host, port, localip, localport, &succ, &attr);
     if (pdev->fd == INVALID_SOCKET) {
         iodev_close(pdev);
         if (retval) *retval = -30;
         return NULL;
     }
  
-    /* indicates the current worker thread will handle the upcoming read/write event */
-    if (pcore->dispmode == 1)
-        pdev->threadid = get_threadid();
+    pdev->family = attr.family;
+    pdev->socktype = attr.socktype;
+    pdev->protocol = attr.protocol;
+
+#endif
 
     if (succ > 0) { /* connect successfully */
         pdev->iostate = IOS_READWRITE;
-        if (retval) *retval = 0;
+        if (retval) *retval = 1;
 
         iodev_rwflag_set(pdev, RWF_READ);
 
@@ -241,8 +447,16 @@ void * eptcp_connect (void * vpcore, char * host, int port,
         pdev->iostate = IOS_CONNECTING;
         if (retval) *retval = -100;
 
+#ifdef HAVE_IOCP
+        iodev_rwflag_set(pdev, RWF_READ);
+#else
         iodev_rwflag_set(pdev, RWF_READ | RWF_WRITE);
+#endif
     }
+
+    /* indicates the current worker thread will handle the upcoming read/write event */
+    if (pcore->dispmode == 1)
+        pdev->threadid = get_threadid();
 
     /* epump is system-decided: select one lowest load epump thread to be bound */
     iodev_bind_epump(pdev, BIND_CURRENT_EPUMP, NULL);
@@ -283,6 +497,10 @@ int eptcp_connect_dnscb (void * vdev, char * name, int len, void * cache, int st
             (*pdev->callback)(pdev->cbpara, pdev, IOE_CONNFAIL, pdev->fdtype);
         return 0;
     }
+
+    pdev->family = addr.family;
+    pdev->socktype = addr.socktype;
+    pdev->protocol = IPPROTO_TCP;
 
     if (succ > 0) { /* connect successfully */
         pdev->iostate = IOS_READWRITE;

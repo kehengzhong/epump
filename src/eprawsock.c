@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -28,7 +28,7 @@ void * eprawsock_client (void * vpcore, void * para, int protocol, int * retval)
         return NULL;
     }
  
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     pdev->fd = WSASocket(AF_INET, SOCK_RAW, /*IPPROTO_UDP*/protocol,
                         NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
@@ -88,7 +88,7 @@ void * eprawsock_client (void * vpcore, void * para, int protocol, int * retval)
 int eprawsock_notify (void * vpdev, int recvall, IOHandler * cb, void * cbpara)
 {
     iodev_t  * pdev = (iodev_t *)vpdev;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     DWORD      lpvBuffer = 1;
     DWORD      lpcbBytesReturned = 0;
 #endif
@@ -96,7 +96,7 @@ int eprawsock_notify (void * vpdev, int recvall, IOHandler * cb, void * cbpara)
     if (!pdev) return -1;
  
     if (recvall) {
-    #ifdef _WIN32
+    #if defined(_WIN32) || defined(_WIN64)
         WSAIoctl(pdev->fd, SIO_RCVALL, &lpvBuffer,
             sizeof(lpvBuffer), NULL, 0, &lpcbBytesReturned, NULL, NULL);
     #endif

@@ -225,7 +225,7 @@ int dns_nsrv_load (void * vmgmt, char * nsip, char * resolv_file)
     char    * p = NULL;
     int       len = 0;
 #endif
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     FIXED_INFO       fi;
     ULONG            ulen = sizeof(fi);
     IP_ADDR_STRING * paddr = NULL;
@@ -266,7 +266,7 @@ int dns_nsrv_load (void * vmgmt, char * nsip, char * resolv_file)
     fclose(fp);
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     /* retrieves network parameters for the local computer */
     if (GetNetworkParams(&fi, &ulen) != ERROR_SUCCESS) {
         return -100;
@@ -1569,7 +1569,8 @@ int dns_msg_send (void * vmsg, char * name, int len, void * vnsrv)
     DnsNSrv  * nsrv = (DnsNSrv *)vnsrv;
     DnsMgmt  * mgmt = NULL;
     DnsHost  * host = NULL;
-    int        i, num, ret;
+    iodev_t  * pdev = NULL;
+    int        i, j, num, ret;
  
     if (!msg) return -1;
  
@@ -1604,7 +1605,13 @@ int dns_msg_send (void * vmsg, char * name, int len, void * vnsrv)
         host = arr_value(nsrv->host_list, (i + msg->nsrvind) % num);
         if (!host) continue;
  
-        ret = sendto(iodev_fd(mgmt->cli_dev),
+        for (j = 0; j < mgmt->cli_dev_num; j++) {
+            pdev = mgmt->cli_dev[j];
+            if (pdev->family == host->addr.u.addr.sa_family)
+                break;
+        }
+
+        ret = sendto(iodev_fd(pdev),
                      frameP(msg->reqfrm),
                      frameL(msg->reqfrm), 0,
                      (struct sockaddr *)&host->addr.u.addr,
@@ -1838,7 +1845,8 @@ void * dns_mgmt_init (void * pcore, char * nsip, char * resolv_file)
  
     mgmt->pcore = pcore;
  
-    mgmt->cli_dev = epudp_client(pcore, NULL, 0, mgmt, NULL, dns_pump, mgmt);
+    mgmt->cli_dev_num = 4;
+    epudp_client(pcore, NULL, 0, mgmt, NULL, dns_pump, mgmt, mgmt->cli_dev, &mgmt->cli_dev_num);
  
     return mgmt;
 }
@@ -1846,6 +1854,7 @@ void * dns_mgmt_init (void * pcore, char * nsip, char * resolv_file)
 void dns_mgmt_clean (void * vmgmt)
 {
     DnsMgmt  * mgmt = (DnsMgmt *)vmgmt;
+    int        i;
  
     if (!mgmt) return;
  
@@ -1854,7 +1863,8 @@ void dns_mgmt_clean (void * vmgmt)
         mgmt->cachetimer = NULL;
     }
  
-    iodev_close(mgmt->cli_dev);
+    for (i = 0; i < mgmt->cli_dev_num; i++)
+        iodev_close(mgmt->cli_dev[i]);
  
     dns_nsrv_free(mgmt->nsrv);
  
@@ -1922,8 +1932,6 @@ int dns_recv (void * vmgmt, void * pobj)
     DnsMgmt       * mgmt = (DnsMgmt *)vmgmt;
     iodev_t       * pdev = (iodev_t *)pobj;
     ep_sockaddr_t   sock;
-    int             socklen = 0;
-    int             toread = 0;
     int             ret = 0;
     frame_t       * frm = NULL;
     uint16          msgid = 0;
@@ -1932,21 +1940,14 @@ int dns_recv (void * vmgmt, void * pobj)
     if (!mgmt) return -1;
  
     while (1) {
-        toread = sock_unread_data(iodev_fd(pdev));
-        if (toread <= 0) break;
- 
-        frm = frame_new(toread);
- 
-        socklen = sizeof(sock);
-        memset(&sock, 0, sizeof(sock));
-        ret = recvfrom(iodev_fd(pdev), frameP(frm), toread, 0, 
-                       (struct sockaddr *)&sock, (socklen_t *)&socklen);
+        frm = frame_new(0);
+
+        ret = epudp_recvfrom(pdev, frm, &sock, NULL);
         if (ret <= 0) {
             frame_free(frm);
             return 0;
         }
-        frame_len_set(frm, ret);
- 
+
         frame_readn(frm, 0, &msgid, 2);
         msgid = ntohs(msgid);
  
