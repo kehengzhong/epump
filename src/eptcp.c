@@ -76,7 +76,7 @@ SOCKET tcp_listen_all (char * localip, int port, void * psockopt,
         listenfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 #endif
         if (listenfd == INVALID_SOCKET) {
-            tolog(1, "tcp_listen_all socket() failed");
+            tolog(1, "tcp_listen_all socket() failed\n");
             continue;
         }
  
@@ -98,7 +98,9 @@ SOCKET tcp_listen_all (char * localip, int port, void * psockopt,
         }
  
         if (bind(listenfd, rp->ai_addr, rp->ai_addrlen) != 0) {
-            tolog(1, "tcp_listen_all bind() failed");
+            memset(buf, 0, sizeof(buf));
+            sock_addr_ntop(rp->ai_addr, buf);
+            tolog(1, "tcp_listen_all bind %s:%d failed\n", buf, sock_addr_port(rp->ai_addr));
             closesocket(listenfd);
             listenfd = INVALID_SOCKET;
             continue;
@@ -106,7 +108,9 @@ SOCKET tcp_listen_all (char * localip, int port, void * psockopt,
  
         if (backlog <= 0) backlog = 511;
         if (listen(listenfd, backlog) == SOCKET_ERROR) {
-            tolog(1, "tcp_listen_all fd=%d failed", listenfd);
+            memset(buf, 0, sizeof(buf));
+            sock_addr_ntop(rp->ai_addr, buf);
+            tolog(1, "tcp_listen_all fd=%d %s:%d failed\n", listenfd, buf, sock_addr_port(rp->ai_addr));
             closesocket(listenfd);
             listenfd = INVALID_SOCKET;
             continue;
