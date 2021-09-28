@@ -116,7 +116,6 @@ void * epudp_listen_create (void * vpcore, char * localip, int port, void * para
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * pdev = NULL;
     sockopt_t   sockopt = {0};
-    SOCKET      fd;
     sockattr_t  fdlist[16];
     int         i, fdnum = 16;
     int         num = 0;
@@ -137,7 +136,7 @@ void * epudp_listen_create (void * vpcore, char * localip, int port, void * para
     sockopt.mask |= SOM_KEEPALIVE;
     sockopt.keepalive = 1;
 
-    fd = udp_listen_all(localip, port, &sockopt, fdlist, &fdnum);
+    udp_listen_all(localip, port, &sockopt, fdlist, &fdnum);
     if (fdnum <= 0) {
         if (retval) *retval = -200;
         if (devnum) *devnum = 0;
@@ -267,7 +266,6 @@ void * epudp_client (void * vpcore, char * localip, int port,
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * pdev = NULL;
     sockopt_t   sockopt = {0};
-    SOCKET      fd;
     sockattr_t  fdlist[16];
     int         i, fdnum = 16;
     int         num = 0;
@@ -288,7 +286,7 @@ void * epudp_client (void * vpcore, char * localip, int port,
     sockopt.mask |= SOM_KEEPALIVE;
     sockopt.keepalive = 1;
 
-    fd = udp_listen_all(localip, port, &sockopt, fdlist, &fdnum);
+    udp_listen_all(localip, port, &sockopt, fdlist, &fdnum);
     if (fdnum <= 0) {
         if (retval) *retval = -200;
         if (devnum) *devnum = 0;
