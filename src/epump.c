@@ -190,7 +190,9 @@ void epump_recycle (void * vepump)
  
     epump->quit = 1;
     epump->threadid = 0;
- 
+
+    epump_wakeup_clean(epump);
+
     /* clean the IODevice facilities */
     rbtree_zero(epump->device_tree);
  
@@ -604,7 +606,6 @@ int epump_main_proc (void * veps)
     epump_thread_add(pcore, epump);
  
     /* now append the global fd's in epcore to current epoll-fd monitoring list */
-    epcore_wakeup_getmon(pcore, epump);
     epcore_global_iodev_getmon(pcore, epump);
     epcore_global_iotimer_getmon(pcore, epump);
  

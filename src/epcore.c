@@ -185,7 +185,9 @@ void epcore_clean (void * vpcore)
     epcore_stop_epump(pcore);
     epcore_stop_worker(pcore);
     SLEEP(50);
-    
+
+    epcore_wakeup_clean(pcore);
+
     /* clean the IODevice facilities */
     DeleteCriticalSection(&pcore->devicetableCS);
     ht_free_all(pcore->device_table, iodev_free);
@@ -220,8 +222,6 @@ void epcore_clean (void * vpcore)
     pcore->worker_tab = NULL;
 
     DeleteCriticalSection(&pcore->eventnumCS);
-
-    epcore_wakeup_clean(pcore);
 
 #ifdef HAVE_IOCP
     epcore_iocp_clean(pcore);
@@ -755,13 +755,13 @@ int epcore_global_iodev_getmon (void * vpcore, void * veps)
             continue;
         }
 
-        if (pdev->epump != NULL) continue;
+        if (epump_iodev_find(epump, pdev->fd) != NULL) continue;
 
         if (pdev->bindtype != BIND_ALL_EPUMP) {
             arr_delete(pcore->glbiodev_list, i); i--; num--;
+            pdev->epump = epump;
         }
 
-        pdev->epump = epump;
         epump_iodev_add(epump, pdev);
 
         if (epump->setpoll)
