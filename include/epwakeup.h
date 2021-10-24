@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
  */
 
@@ -15,8 +15,6 @@ int epcore_wakeup_clean (void * vpcore);
 
 int epcore_wakeup_send (void * vpcore);
 int epcore_wakeup_recv (void * vpcore);
-
-int epcore_wakeup_getmon (void * vpcore, void * veps);
 
 int epump_wakeup_init  (void * vepump);
 int epump_wakeup_clean (void * vepump);
