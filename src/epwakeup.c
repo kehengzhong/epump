@@ -31,7 +31,7 @@ int epcore_wakeup_init (void * vpcore)
     iodev_bind_epump(pcore->wakeupdev, BIND_ALL_EPUMP, NULL);
     return 0;
 
-#else
+#elif defined(WAKE_BY_UDP)
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * pdev = NULL;
     int         times = 0;
@@ -57,6 +57,28 @@ int epcore_wakeup_init (void * vpcore)
     sock_nonblock_set(pcore->wakeupfd, 1);
 
     pcore->wakeupdev = pdev = iodev_new_from_fd(pcore, pcore->wakeupfd, FDT_UDPSRV, NULL, NULL, NULL);
+
+    iodev_bind_epump(pcore->wakeupdev, BIND_ALL_EPUMP, NULL);
+    return 0;
+
+#else
+    epcore_t  * pcore = (epcore_t *)vpcore;
+    iodev_t   * pdev = NULL;
+    SOCKET      fds[2];
+
+    if (!pcore) return -1;
+
+    //if (pipe_create(fds) < 0)
+    if (sock_pair_create(SOCK_STREAM, fds) < 0)
+        return -2;
+
+    pcore->wakeupfd = fds[0];
+    pcore->informfd = fds[1];
+
+    sock_nonblock_set(pcore->informfd, 1);
+    sock_nonblock_set(pcore->wakeupfd, 1);
+
+    pcore->wakeupdev = pdev = iodev_new_from_fd(pcore, pcore->wakeupfd, FDT_CONNECTED, NULL, NULL, NULL);
 
     iodev_bind_epump(pcore->wakeupdev, BIND_ALL_EPUMP, NULL);
     return 0;
@@ -96,6 +118,7 @@ int epcore_wakeup_clean (void * vpcore)
     pcore->informfd = INVALID_SOCKET;
 
     return 0;
+
 #endif
 }
 
@@ -123,7 +146,7 @@ int epcore_wakeup_send (void * vpcore)
 
     return 0;
 
-#else
+#elif defined(WAKE_BY_UDP)
     int  ret = 0;
     struct sockaddr_in  addr;
 
@@ -137,6 +160,13 @@ int epcore_wakeup_send (void * vpcore)
               (struct sockaddr *) &addr, sizeof(addr));
 
     return ret;
+
+#else
+    if (!pcore) return -1;
+
+    write(pcore->wakeupfd, "a", 1);
+
+    return 0;
 #endif
 }
 
@@ -155,7 +185,7 @@ int epcore_wakeup_recv (void * vpcore)
 
     return 0;
 
-#else
+#elif defined(WAKE_BY_UDP)
     epcore_t           * pcore = (epcore_t *)vpcore;
     uint8                inBuf[1024];
     struct sockaddr_in   addr;
@@ -201,6 +231,16 @@ int epcore_wakeup_recv (void * vpcore)
         if (ret == 1 && inBuf[0] == 'a') continue;
     }
  
+    return 0;
+
+#else
+    epcore_t * pcore = (epcore_t *)vpcore;
+    char       buf[32];
+ 
+    if (!pcore) return -1;
+ 
+    read(pcore->wakeupfd, buf, 32);
+
     return 0;
 #endif
 }
