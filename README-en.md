@@ -1,6 +1,6 @@
 ## ePump - An Event-Driven, Multi-Threaded C Framework
 
-[README in Chinese 中文版介绍](https://github.com/kehengzhong/epump/blob/main/README.md)
+[README in Chinese 中文版介绍](https://github.com/kehengzhong/epump/blob/master/README.md)
 
 *An C-language framework based on I/O event notification, non-blocking communication, and multi-threaded event-driven model that helps you develop servers with high performance and numerous concurrent connections.*
 
