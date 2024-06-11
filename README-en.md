@@ -41,9 +41,8 @@
 * [12. About the Author Lao Ke](#12-About-the-Author-Lao-Ke)
 
 
-***
 
-1. What is ePump?
+## 1. What is ePump?
 ------
 
 ePump is an event-driven C language application development framework that leverages I/O event notifications, non-blocking communication, and a multi-threaded event-driven model to facilitate the development of high-performance server programs capable of handling a large number of concurrent connections.
@@ -55,7 +54,7 @@ ePump is responsible for managing and monitoring file descriptors in non-blockin
 The application calls the interface functions provided by the ePump framework to pre-create and open various network communication Socket file descriptors (FDs), or to start timers, etc., and adds or binds them to the monitoring queue of the ePump thread. The status monitoring of these FDs and timers uses the I/O event notification facilities provided by the operating system, such as epoll, select, poll, kqueue, completion port, etc.
 
 
-2. What Problems Does ePump Solve?
+## 2. What Problems Does ePump Solve?
 ------
 
 Many server programs need to handle a large number of concurrent TCP connection requests and UDP requests initiated from the client side, such as web servers, online servers, messaging systems, etc. Early communication server systems typically used a separate process or thread to accept and handle each connection request, or they utilized the OS's I/O asynchronous event notification and multiplexing mechanisms to handle multiple non-blocking concurrent connection requests within a single process.
@@ -71,7 +70,7 @@ The monitoring and management of these two types of objects and the dispatching 
 The complex low-level processing details are encapsulated into simple and easy-to-use API interface functions. Through these API functions, developers can quickly develop high-performance server programs that support large concurrency.
 
 
-3. Working Principle of the ePump Framework
+## 3. Working Principle of the ePump Framework
 ------
 
 The ePump framework evolved from the eProbe framework developed by the author in 2003 and is a shorthand for "Event Pump," which, as the name implies, is an event-driven architecture.
@@ -130,7 +129,7 @@ In addition to monitoring the `iodev_t` device corresponding to the file descrip
 To ensure running efficiency, the total number of threads in the ePump architecture, including both ePump and worker threads, should align with the number of CPU core processors for fully parallel processing capability.
 
 
-4. Working Models of the ePump Framework
+## 4. Working Models of the ePump Framework
 ------
 
 Let's first define the terms "fast service" and "slow service" mentioned later in this document. Fast service refers to a server system that, after receiving a client's request, has a relatively simple and quick service responding without long periods of blocking or waiting for I/O. On the contrary, slow service refers to a server system that requires a longer responding time to block and wait for data I/O when processing a client's request, such as services with slow database queries or slow insertions.
@@ -162,7 +161,7 @@ The ePump framework is highly flexible and can be divided into two types of work
 * When using the ePump framework's composite service model, the total number of threads is recommended to be the number of CPU Core Processors, with the number of ePump threads being 10-20% of the total CPU cores, and the number of worker threads being 80-90% of the CPU cores. For example, on a server with a 32-core CPU running a program developed with the ePump architecture, the number of ePump threads should be set to 3-6, and the number of worker threads should be set to 26-29.
 
 
-5. File Descriptors in the ePump Framework
+## 5. File Descriptors in the ePump Framework
 ------
 
 In Unix and Linux operating systems, all physical or virtual devices related to I/O reading and writing are regarded as files, including regular files, directories, character device files (such as keyboards, mouse), block device files (such as hard disks, optical drives), network sockets, etc., all abstracted into files. A file descriptor is an integer value allocated by the operating system kernel to manage the index of opened file structures. The kernel maintains a file descriptor table for each process, and the index of this table, that is the file descriptor, starts from 0, with 0 being the standard input, 1 being the standard output, and 2 being the standard error output. Each file opened in the process is assigned a file descriptor fd, corresponding to a certain index item in the process's file descriptor table, and the file is read, written, and accessed through fd.
@@ -203,7 +202,7 @@ In the ePump architecture, various types of file descriptors are defined for dif
 The `iodev_t` device built based on the file descriptor is the most fundamental physical facility of the ePump framework. Essentially, ePump is a system for managing file descriptors. Events generated by file descriptors drive the entire ePump framework like blood.
 
 
-6. Callback Mechanism of the ePump Framework
+## 6. Callback Mechanism of the ePump Framework
 ------
 
 According to business logic, software modules generally adopt a layered model, and different modules are usually called through function interfaces. However, in the layered logic, the lower-level modules usually serve as basic capabilities, such as performing calculations, I/O reading and writing, etc., providing function call interfaces to the upper-level modules. The upper-level modules use the functions of the lower-level modules through their interfaces. How can the lower-level modules call the functions of the upper-level modules? This is the callback mechanism.
@@ -286,7 +285,7 @@ int    dns_query (void * vpcore, char * name, int len, DnsCB * cb, void * cbobj,
 These functions cover event monitoring for communication facilities such as TCP, UDP, and Unix Sockets, which generate file descriptors and timers. For file descriptors other than TCP, UDP, and Unix Sockets, you can use the `epfile_bind_fd` interface to create and bind file descriptor devices, allowing any file descriptor FD to be managed and event-driven within the ePump architecture.
 
 
-7. Scheduling Mechanism of the ePump Framework
+## 7. Scheduling Mechanism of the ePump Framework
 ------
 
 Scheduling is the process of allocating resources according to certain mechanisms and algorithms. The main resources of the ePump framework are `iodev_t` devices, `iotimer_t` timers, `ioevent_t` events, ePump threads, and worker threads. The scheduling mechanism is designed around the allocation of these resources.
@@ -362,7 +361,7 @@ The load of a worker thread is calculated in real-time by adding together the va
 The event scheduling and dispatching mechanism for worker threads primarily depends on the load of the worker threads, using a low-load priority algorithm. The ultimate result of using this algorithm is that multiple worker threads will evenly share all processing tasks in the system.
 
 
-8. Handling of the Thundering Herd Problem in the ePump Framework
+## 8. Handling of the Thundering Herd Problem in the ePump Framework
 ------
 
 ### 8.1 What is the Thundering Herd Problem?
@@ -428,7 +427,7 @@ All ePump threads would bind the `iodev_t` device that listens to the service po
 * **Implement Advanced Locking Mechanisms**: Use advanced locking strategies such as lock-free programming or fine-grained locking to minimize contention and reduce the time threads spend waiting for locks.
 
 
-9. How to Build ePump
+## 9. How to Build ePump
 ------
 
 The ePump framework can run on most Unix-like systems and Windows OS, with optimal performance on Linux.
@@ -439,7 +438,7 @@ If you have obtained the ePump package on a Unix-like system and found the Makef
 $ make && make install
 ```
 
-10. How to Integrate
+## 10. How to Integrate
 ------
 
 The newly generated ePump libraries will be installed in the default directory `/usr/local/lib`, and the header file `epump.h` will be copied to the location `/usr/local/include`.
@@ -459,7 +458,7 @@ Add the following compiler options in the Makefile, and you will be ready to go:
 Please refer to the test program for your coding. Further tutorials or documentation will be available later.
 
 
-11. Two Other Open Source Projects Related to the ePump Framework
+## 11. Two Other Open Source Projects Related to the ePump Framework
 ------
 
 ### [adif Project](https://github.com/kehengzhong/adif)
@@ -472,11 +471,10 @@ The ePump framework project relies on the adif project to provide basic data str
 Another open-source project developed based on the adif library and ePump framework is the eJet Web server. The eJet is a lightweight, high-performance Web server developed using the adif library and ePump framework. The system makes extensive use of Zero-Copy technology, supports all functions of HTTP/1.1, HTTPS, provides virtual hosting, URI rewrite, Script, variable, Cookie processing, TLS/SSL, automatic Redirect, Cache in local storage, access-log file functions, and is an ideal platform for static file access, downloads, and PHP hosting. In addition, it also supports efficient uploading and publishing large files. Furthermore, it supports advanced features such as Proxy, forward proxy, reverse proxy, TLS/SSL, FastCGI, uWSGI, local Cache storage management, CDN node services, etc. The eJet system can be used as a Web server to host PHP applications, Python applications, and at the same time, using caching and Proxy functions, it can be easily configured as an important distribution node of the CDN distribution system.
 
 
-12. About the Author Lao Ke
+## 12. About the Author Lao Ke
 ------
 
 With extensive experience in the development of application platforms and communication systems on Linux and other systems, the author is a senior programmer and engineer. You can contact the author by email at kehengzhong@hotmail.com, or leave a message to the author through QQ number [571527](http://wpa.qq.com/msgrd?V=1&Uin=571527&Site=github.com&Menu=yes) or WeChat ID [beijingkehz](http://wx.qq.com/).
 
 The ePump framework project is the author's second of three related open-source projects. As a high-performance system software base framework, it is refined from a large number of system R&D practices, providing framework support for the development of high-concurrency server systems. This project originated from the eProbe project, which was developed and completed in 2003, and has undergone a lot of optimization on this basis, making the code more concise and efficient.
 
-***
