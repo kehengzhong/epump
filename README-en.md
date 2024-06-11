@@ -41,6 +41,8 @@
 * [12. About the Author Lao Ke](#12-About-the-Author-Lao-Ke)
 
 
+***
+
 1. What is ePump?
 ------
 
@@ -477,3 +479,4 @@ With extensive experience in the development of application platforms and commun
 
 The ePump framework project is the author's second of three related open-source projects. As a high-performance system software base framework, it is refined from a large number of system R&D practices, providing framework support for the development of high-concurrency server systems. This project originated from the eProbe project, which was developed and completed in 2003, and has undergone a lot of optimization on this basis, making the code more concise and efficient.
 
+***
