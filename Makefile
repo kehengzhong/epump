@@ -1,7 +1,7 @@
 
 #################################################################
 #  Makefile for Event Pump - epump
-#  Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+#  Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
 #  All rights reserved. See MIT LICENSE for redistribution.
 #################################################################
 
@@ -37,8 +37,8 @@ ADIF_RPATH = -Wl,-rpath,$(adif_lib)
 #  Customization of shared object library (SO)
 
 PKG_VER_MAJOR = 2
-PKG_VER_MINOR = 1
-PKG_VER_RELEASE = 15
+PKG_VER_MINOR = 2
+PKG_VER_RELEASE = 10
 PKG_VER = $(PKG_VER_MAJOR).$(PKG_VER_MINOR).$(PKG_VER_RELEASE)
 
 PKG_VERSO_LIB = $(PKG_SO_LIB).$(PKG_VER)
