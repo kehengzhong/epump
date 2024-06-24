@@ -809,28 +809,27 @@ int epcore_global_iotimer_getmon (void * vpcore, void * veps)
     epcore_t   * pcore = (epcore_t *)vpcore;
     epump_t    * epump = (epump_t *)veps;
     iotimer_t  * iot = NULL;
-    int          i, num;
  
     if (!pcore) return -1;
     if (!epump) return -2;
  
     EnterCriticalSection(&pcore->glbiotimerlistCS);
 
-    num = arr_num(pcore->glbiotimer_list);
-    for (i = 0; i < num; i++) {
-
-        iot = arr_delete(pcore->glbiotimer_list, i);
+    while(arr_num(pcore->glbiotimer_list) > 0)
+    {
+        iot = arr_pop(pcore->glbiotimer_list);
         if (!iot)  continue;
-
+    
         iot->epump = epump;
 
         EnterCriticalSection(&epump->timertreeCS);
         rbtree_insert(epump->timer_tree, iot, iot, NULL);
         LeaveCriticalSection(&epump->timertreeCS);
+
     }
 
     LeaveCriticalSection(&pcore->glbiotimerlistCS);
- 
+
     return 0;
 }
 
