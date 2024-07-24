@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #include "btype.h"
@@ -121,6 +145,8 @@ SOCKET tcp_listen_all (char * localip, int port, void * psockopt,
             fdlist[num].family = rp->ai_family;
             fdlist[num].socktype = rp->ai_socktype;
             fdlist[num].protocol = rp->ai_protocol;
+            sock_addr_ntop(rp->ai_addr, fdlist[num].addr);
+            fdlist[num].port = sock_addr_port(rp->ai_addr);
             num++;
         } else
             break;
@@ -139,8 +165,8 @@ SOCKET tcp_listen_all (char * localip, int port, void * psockopt,
 }
 
 
-void * eptcp_listen_create (void * vpcore, char * localip, int port, void * para, int * retval,
-                            IOHandler * cb, void * cbpara, iodev_t ** devlist, int * devnum)
+void * eptcp_listen_create (void * vpcore, char * localip, int port, void * popt, void * para,
+                            IOHandler * cb, void * cbpara, iodev_t ** devlist, int * devnum, int * retval)
 {
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * pdev = NULL;
@@ -168,6 +194,8 @@ void * eptcp_listen_create (void * vpcore, char * localip, int port, void * para
     sockopt.mask |= SOM_KEEPALIVE;
     sockopt.keepalive = 1;
 
+    if (popt) sock_option_add(&sockopt, (sockopt_t *)popt);
+
     tcp_listen_all(localip, port, &sockopt, fdlist, &fdnum);
     if (fdnum <= 0) {
         if (retval) *retval = -200;
@@ -190,9 +218,8 @@ void * eptcp_listen_create (void * vpcore, char * localip, int port, void * para
 
         sock_nonblock_set(pdev->fd, 1);
 
-        if (localip)
-            strncpy(pdev->local_ip, localip, sizeof(pdev->local_ip)-1);
-        pdev->local_port = port;
+        strncpy(pdev->local_ip, fdlist[i].addr, sizeof(pdev->local_ip)-1);
+        pdev->local_port = fdlist[i].port;
 
         pdev->para = para;
         pdev->callback = cb;
@@ -224,8 +251,9 @@ void * eptcp_listen_create (void * vpcore, char * localip, int port, void * para
     return pdev;
 }
  
-void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int * pret,
-                     IOHandler * cb, void * cbpara, int bindtype, void ** plist, int * listnum)
+void * eptcp_listen (void * vpcore, char * localip, int port, void * popt, void * para,
+                     IOHandler * cb, void * cbpara, int bindtype, void ** plist,
+                     int * listnum, int * pret)
 {
     epcore_t * pcore = (epcore_t *)vpcore;
     iodev_t  * pdev = NULL;
@@ -249,15 +277,15 @@ void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int *
         bindtype != BIND_ALL_EPUMP)
         return NULL;
 
-    pdev = eptcp_listen_create(pcore, localip, port, para, pret,
-                               cb, cbpara, devlist, &devnum);
+    pdev = eptcp_listen_create(pcore, localip, port, popt, para,
+                               cb, cbpara, devlist, &devnum, pret);
     if (devnum <= 0) {
         return NULL;
     }
  
     for (i = 0; i < devnum; i++) {
         /* bind one/more epump threads according to bindtype */
-        iodev_bind_epump(devlist[i], bindtype, NULL);
+        iodev_bind_epump(devlist[i], bindtype, 0, 0);
 
         if (plist && listnum && i < *listnum)
             plist[num++] = devlist[i];
@@ -276,8 +304,8 @@ void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int *
     return pdev;
 }
  
-void * eptcp_mlisten (void * vpcore, char * localip, int port, void * para,
-                      IOHandler * cb, void * cbpara)
+void * eptcp_mlisten (void * vpcore, char * localip, int port, void * popt,
+                      void * para, IOHandler * cb, void * cbpara)
 {
     epcore_t * pcore = (epcore_t *)vpcore;
  
@@ -285,12 +313,12 @@ void * eptcp_mlisten (void * vpcore, char * localip, int port, void * para,
 
     if (port <= 0 || port >= 65536) return NULL;
 
-    return mlisten_open(pcore, localip, port, FDT_LISTEN, para, cb, cbpara);
+    return mlisten_open(pcore, localip, port, FDT_LISTEN, popt, para, cb, cbpara);
 }
  
  
-void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
-                     IOHandler * cb, void * cbpara, int bindtype)
+void * eptcp_accept (void * vpcore, void * vld, void * popt, void * para, IOHandler * cb,
+                     void * cbpara, int bindtype, ulong threadid, int * retval)
 {
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * listendev = (iodev_t *)vld;
@@ -326,6 +354,10 @@ void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
         return NULL;
     }
  
+    if (popt) {
+        sock_option_set(clifd, (sockopt_t *)popt);
+    }
+
     pdev = iodev_new(pcore);
     if (!pdev) {
         if (retval) *retval = -200;
@@ -356,9 +388,9 @@ void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
  
 #endif
 
-    /* indicates the current worker thread will handle the upcoming read/write event */
-    if (pcore->dispmode == 1)
-        pdev->threadid = get_threadid();
+    /* indicates which worker thread will handle the upcoming read/write event */
+    if (threadid > 0)
+         pdev->threadid = threadid;
 
     sock_nonblock_set(pdev->fd, 1);
  
@@ -374,7 +406,7 @@ void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
     if (retval) *retval = 0;
 
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, bindtype, NULL);
+    iodev_bind_epump(pdev, bindtype, pdev->threadid, 0);
 
 #ifdef HAVE_IOCP
     iocp_event_recv_post(pdev, NULL, 0);
@@ -384,8 +416,8 @@ void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
 }
  
 void * eptcp_connect (void * vpcore, char * host, int port,
-                      char * localip, int localport, void * para,
-                      int * retval, IOHandler * cb, void * cbpara)
+                      char * localip, int localport, void * popt, void * para,
+                      IOHandler * cb, void * cbpara, ulong threadid, int * retval)
 {
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * pdev = NULL;
@@ -416,6 +448,12 @@ void * eptcp_connect (void * vpcore, char * host, int port,
         pdev->cbpara = cbpara;
     }
  
+    /* indicates which worker thread will handle the upcoming read/write event */
+    if (threadid > 0)
+        pdev->threadid = threadid;
+    else
+        pdev->threadid = get_threadid();
+
 #ifdef HAVE_IOCP
 
     iocp_event_connect_post(pdev, host, port, localip, localport, &succ);
@@ -427,7 +465,7 @@ void * eptcp_connect (void * vpcore, char * host, int port,
 
 #else
 
-    pdev->fd = tcp_nb_connect(host, port, localip, localport, &succ, &attr);
+    pdev->fd = tcp_nb_connect(host, port, localip, localport, popt, &succ, &attr);
     if (pdev->fd == INVALID_SOCKET) {
         iodev_close(pdev);
         if (retval) *retval = -30;
@@ -457,25 +495,29 @@ void * eptcp_connect (void * vpcore, char * host, int port,
 #endif
     }
 
-    /* indicates the current worker thread will handle the upcoming read/write event */
-    if (pcore->dispmode == 1)
-        pdev->threadid = get_threadid();
-
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_CURRENT_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_GIVEN_EPUMP, pdev->threadid, 0);
 
     return pdev;
 }
  
 
-int eptcp_connect_dnscb (void * vdev, char * name, int len, void * cache, int status)
+int eptcp_connect_dnscb (void * vpcore, ulong devid, char * name, int len, void * cache, int status)
 {
-    iodev_t       * pdev = (iodev_t *)vdev;
+    epcore_t      * pcore = (epcore_t *)vpcore;
+    iodev_t       * pdev = NULL;
     ep_sockaddr_t   addr;
+    void          * popt = NULL;
     char            dstip[41];
     int             succ = 0;
 
-    if (!pdev) return -1;
+    if (!pcore) return -1;
+
+    pdev = epcore_iodev_find(pcore, devid);
+    if (!pdev) return -2;
+
+    popt = pdev->iot;
+    pdev->iot = NULL;
 
     if (status == DNS_ERR_IPV4 || status == DNS_ERR_IPV6) {
         str_secpy(dstip, sizeof(dstip)-1, name, len);
@@ -494,7 +536,7 @@ int eptcp_connect_dnscb (void * vdev, char * name, int len, void * cache, int st
         return 0;
     }
 
-    pdev->fd = tcp_ep_connect(&addr, 1, pdev->local_ip, pdev->local_port, NULL, &succ);
+    pdev->fd = tcp_ep_connect(&addr, 1, pdev->local_ip, pdev->local_port, popt, &succ);
     if (pdev->fd == INVALID_SOCKET) {
         if (pdev->callback)
             (*pdev->callback)(pdev->cbpara, pdev, IOE_CONNFAIL, pdev->fdtype);
@@ -518,14 +560,14 @@ int eptcp_connect_dnscb (void * vdev, char * name, int len, void * cache, int st
     }
 
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_CURRENT_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_GIVEN_EPUMP, pdev->threadid, 0);
 
     return 0;
 }
 
-void * eptcp_nb_connect (void * vpcore, char * host, int port,
-                         char * localip, int localport, void * para,
-                         int * retval, IOHandler * cb, void * cbpara)
+void * eptcp_nb_connect (void * vpcore, char * host, int port, char * localip,
+                         int localport, void * popt, void * para, IOHandler * cb,
+                         void * cbpara, ulong threadid, int * retval)
 {
     epcore_t      * pcore = (epcore_t *)vpcore;
     iodev_t       * pdev = NULL;
@@ -554,22 +596,27 @@ void * eptcp_nb_connect (void * vpcore, char * host, int port,
         pdev->cbpara = cbpara;
     }
 
+    /* indicates which worker thread will handle the upcoming read/write event */
+    if (threadid > 0)
+         pdev->threadid = threadid;
+    else
+        pdev->threadid = get_threadid();
+
     str_secpy(pdev->local_ip, sizeof(pdev->local_ip), localip, strlen(localip));
     pdev->local_port = localport;
 
     pdev->remote_port = port;
 
-    /* indicates the current worker thread will handle the upcoming read/write event */
-    if (pcore->dispmode == 1)
-        pdev->threadid = get_threadid();
-
     if (sock_addr_parse(host, -1, port, &addr) <= 0) {
-        if (dns_nb_query(pcore->dnsmgmt, host, -1, NULL, NULL, eptcp_connect_dnscb, pdev) < 0) {
+        pdev->iot = popt;
+
+        if (dns_nb_query(pcore->dnsmgmt, host, -1, NULL, NULL, eptcp_connect_dnscb, pcore, pdev->id) < 0) {
             iodev_close(pdev);
             if (retval) *retval = -30;
             return NULL;
         }
 
+        pdev->iot = NULL;
         pdev->iostate = IOS_RESOLVING;
         if (retval) *retval = -101;
 
@@ -578,7 +625,7 @@ void * eptcp_nb_connect (void * vpcore, char * host, int port,
 
     str_secpy(pdev->remote_ip, sizeof(pdev->remote_ip), host, strlen(host));
 
-    pdev->fd = tcp_ep_connect(&addr, 1, localip, localport, NULL, &succ);
+    pdev->fd = tcp_ep_connect(&addr, 1, localip, localport, popt, &succ);
     if (pdev->fd == INVALID_SOCKET) {
         iodev_close(pdev);
         if (retval) *retval = -30;
@@ -599,7 +646,7 @@ void * eptcp_nb_connect (void * vpcore, char * host, int port,
     }
 
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_CURRENT_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_GIVEN_EPUMP, threadid, 0);
 
     return pdev;
 }

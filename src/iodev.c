@@ -1,12 +1,38 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #include "btype.h"
 #include "mthread.h"
 #include "memory.h"
 #include "arfifo.h"
+
+#include "trace.h"
 
 #include "epcore.h"
 #include "epump_local.h"
@@ -38,34 +64,95 @@ int iodev_init (void * vdev)
 
     if (!pdev) return -1;
 
+    pdev->res[0] = pdev->res[1] = pdev->res[2] = pdev->res[3] = NULL;
+
     InitializeCriticalSection(&pdev->fdCS);
+    pdev->id = 0;
     pdev->fd = INVALID_SOCKET;
+    pdev->fdtype = 0;
 
-    pdev->iot = NULL;
+    pdev->family = 0;
+    pdev->socktype = 0;
+    pdev->protocol = 0;
 
+    pdev->para = NULL;
+    pdev->callback = NULL;
+    pdev->cbpara = NULL;
+
+#ifdef HAVE_OPENSSL
+    pdev->sslctx = NULL;
+    pdev->ssl = NULL;
+#endif
+
+    pdev->local_ip[0] = '\0';
+    pdev->local_port = 0;
+    pdev->remote_ip[0] = '\0';
+    pdev->remote_port = 0;
+
+    pdev->rwflag = 0;
+    pdev->iostate = 0;
+
+#ifdef HAVE_IOCP
+    pdev->devfifo = NULL;
+    pdev->rcvfrm = NULL;
+    memset(&pdev->sock, 0, sizeof(pdev->sock));
+    pdev->socklen = 0;
+    pdev->iocprecv = 0;
+    pdev->iocpsend = 0;
+#endif
+
+    pdev->threadid = 0;
+
+    pdev->bindtype = 0;
     pdev->tcp_nopush = TCP_NOPUSH_DISABLE;
     pdev->tcp_nodelay = TCP_NODELAY_DISABLE;
 
     pdev->reuseaddr = 0;
     pdev->reuseport = 0;
     pdev->keepalive = 0;
+    pdev->ssl_handshaked = 0;
+
+    pdev->iot = NULL;
+    pdev->epump = NULL;
 
     return 0;
 }
 
 
-void iodev_free (void * vpdev)
+int epcore_iodev_free (void * vpdev)
+{
+    iodev_t * pdev = (iodev_t *)vpdev;
+    epcore_t * pcore = NULL;
+
+    if (!pdev) return -1;
+
+    pcore = pdev->epcore;
+    if (!pcore) return -2;
+
+    if (iodev_free(pdev) == 0)
+        mpool_recycle(pcore->device_pool, pdev);
+
+    return 0;
+}
+
+int iodev_free (void * vpdev)
 {
     iodev_t * pdev = (iodev_t *)vpdev;
 
-    if (!pdev) return;
+    if (!pdev) return -1;
+
+    if (pdev->iot) {
+        iotimer_stop(pdev->epcore, pdev->iot);
+        pdev->iot = NULL;
+    }
 
     if (pdev->fd != INVALID_SOCKET) {
         if (pdev->fd <= 0 && pdev->id == 0) {
             /* invoked during unused memory pool recycling */
         } else {
-            /* when calling iodev_free, the threads may be exited already.
-               epumps object will not be in memory. So detaching from fd-poll is unnecessary */
+            /* When calling iodev_free, the thread may have exited.
+               The epumps object will not be in memory. Therefore, it
+               is not necessary to detach from fd-poll.*/
 
             if (pdev->fdtype == FDT_CONNECTED || pdev->fdtype == FDT_ACCEPTED) {
             #ifdef UNIX
@@ -97,7 +184,7 @@ void iodev_free (void * vpdev)
 
     DeleteCriticalSection(&pdev->fdCS);
 
-    kfree(pdev);
+    return 0;
 }
 
 int iodev_cmp_iodev (void * a, void * b )
@@ -128,9 +215,9 @@ int iodev_cmp_id (void * a, void * b)
 int iodev_cmp_fd (void * a, void * b)
 {
     iodev_t * pdev = (iodev_t *)a;
-    SOCKET    fd = *(SOCKET *)b;
+    SOCKET    fd = (SOCKET)(long)b;
 
-    if (!a || !b) return -1;
+    if (!a) return -1;
 
     if (pdev->fd == fd) return 0;
     if (pdev->fd > fd) return 1;
@@ -139,9 +226,7 @@ int iodev_cmp_fd (void * a, void * b)
 
 ulong iodev_hash_fd_func (void * key)
 {
-    int fd = *(int *)key;
-
-    return (ulong)fd;
+    return (ulong)key;
 }
 
 ulong iodev_hash_func (void * key)
@@ -159,21 +244,8 @@ void * iodev_new (void * vpcore)
 
     if (pcore == NULL) return NULL;
 
-    pdev = (iodev_t *)bpool_fetch(pcore->device_pool);
-    if (pdev == NULL) {
-        pdev = iodev_alloc();
-        if (pdev == NULL) return NULL;
-    }
-
-    EnterCriticalSection(&pcore->devicetableCS);
-
-    if (pcore->deviceID < 100)
-        pcore->deviceID = 100;
-    pdev->id = pcore->deviceID++;
-
-    ht_set(pcore->device_table, &pdev->id, pdev);
-
-    LeaveCriticalSection(&pcore->devicetableCS);
+    pdev = (iodev_t *)mpool_fetch(pcore->device_pool);
+    if (!pdev) return NULL;
 
     InitializeCriticalSection(&pdev->fdCS);
     pdev->fd = INVALID_SOCKET;
@@ -191,20 +263,34 @@ void * iodev_new (void * vpcore)
     pdev->rwflag = 0x00;
     pdev->iostate = 0x00;
 
-    pdev->epcore = pcore;
     pdev->iot = NULL;
     pdev->epump = NULL;
+    pdev->epcore = pcore;
 
     pdev->threadid = 0;
+
+    EnterCriticalSection(&pcore->devicetableCS);
+
+    if (pcore->deviceID < 100)
+        pcore->deviceID = 100;
+    pdev->id = pcore->deviceID++;
+
+    ht_set(pcore->device_table, &pdev->id, pdev);
+
+    LeaveCriticalSection(&pcore->devicetableCS);
 
     return pdev;
 }
 
 
-void iodev_close (void * vdev)
+void iodev_closeit (void * vdev)
+{
+    iodev_close(vdev);
+}
+
+void iodev_close_dbg (void * vdev, char * file, int line)
 {
     iodev_t  * pdev = (iodev_t *)vdev;
-    epump_t  * epump = NULL;
     epcore_t * pcore = NULL;
 
     if (!pdev) return;
@@ -212,9 +298,30 @@ void iodev_close (void * vdev)
     pcore = (epcore_t *)pdev->epcore;
     if (!pcore) return;
 
-    if (epcore_iodev_del(pcore, pdev->id) == NULL) {
+    iodev_close_by_dbg(pcore, pdev->id, file, line);
+}
+
+void iodev_close_by_dbg (void * vpcore, ulong id, char * file, int line)
+{
+    epcore_t * pcore = (epcore_t *)vpcore;
+    iodev_t  * pdev = NULL;
+    epump_t  * epump = NULL;
+
+    iodev_t  * iter = NULL;
+    int        num = 0;
+
+    if (!pcore) return;
+
+    if ((pdev = epcore_iodev_del(pcore, id)) == NULL) {
+        tolog(0, "DevClo: devid=%lu NotFound, Dev:%d DPool=%d/%d Tim:%d TPool=%d/%d %s:%d\n",
+              id, ht_num(pcore->device_table), mpool_allocated(pcore->device_pool),
+              mpool_consumed(pcore->device_pool), ht_num(pcore->timer_table),
+              mpool_allocated(pcore->timer_pool), mpool_consumed(pcore->timer_pool),
+              file, line);
         return;
     }
+
+    EnterCriticalSection(&pdev->fdCS);
 
     /* remove ioevents related to current iodev_t waiting in queue */
     worker_ioevent_remove(worker_thread_find(pcore, get_threadid()), pdev);
@@ -229,10 +336,24 @@ void iodev_close (void * vdev)
     }
 
     epump = (epump_t *)pdev->epump;
-    if (epump) 
-        epump_iodev_del(epump, pdev->fd);
+    if (epump) {
+        num = rbtree_num(epump->device_tree);
+        iter = epump_iodev_del(epump, pdev->fd);
+    }
 
-    EnterCriticalSection(&pdev->fdCS);
+    if (epump && pdev != iter) {
+        epump_iodev_print(epump, 1);
+        tolog(0, "DevClo: [%lu %d %s %d %d] Dev:%d/%d/%d DPool=%d/%d Tim:%d/%d TPool=%d/%d "
+                 "RM[%lu %d %s %d %d]%s ePump=%lu pdev=%p %s:%d\n",
+              pdev->id, pdev->fd, pdev->remote_ip, pdev->fdtype, pdev->bindtype,
+              num, epump?rbtree_num(epump->device_tree):-1, ht_num(pcore->device_table),
+              mpool_allocated(pcore->device_pool), mpool_consumed(pcore->device_pool),
+              epump?rbtree_num(epump->timer_tree):0, ht_num(pcore->timer_table),
+              mpool_allocated(pcore->timer_pool), mpool_consumed(pcore->timer_pool),
+              iter?iter->id:0, iter?iter->fd:-1, iter?iter->remote_ip:"",
+              iter?iter->fdtype:0, iter?iter->bindtype:0, iter==pdev?"Succ":"Fail",
+              epump?epump->threadid:0, pdev, file, line);
+    }
 
     pdev->rwflag = 0x00;
     pdev->para = NULL;
@@ -241,7 +362,7 @@ void iodev_close (void * vdev)
     pdev->iostate = 0x00;
 
     if (pdev->iot) {
-        iotimer_stop(pdev->iot);
+        iotimer_stop(pcore, pdev->iot);
         pdev->iot = NULL;
     }
 
@@ -270,7 +391,7 @@ void iodev_close (void * vdev)
 
 #ifdef HAVE_IOCP
     if (pdev->devfifo) {
-        ar_fifo_free_all(pdev->devfifo, iodev_close);
+        ar_fifo_free_all(pdev->devfifo, iodev_closeit);
         pdev->devfifo = NULL;
     }
 
@@ -279,7 +400,7 @@ void iodev_close (void * vdev)
     }
 #endif
 
-    bpool_recycle(pcore->device_pool, pdev);
+    mpool_recycle(pcore->device_pool, pdev);
 }
 
 
@@ -314,10 +435,10 @@ void iodev_linger_close (void * vdev)
     }
 
     if (pdev->iot) {
-        iotimer_stop(pdev->iot);
+        iotimer_stop(pcore, pdev->iot);
         pdev->iot = NULL;
     }
-    pdev->iot = iotimer_start(pcore, 2 *1000, IOTCMD_IDLE, pdev, NULL, NULL);
+    pdev->iot = iotimer_start(pcore, 2 *1000, IOTCMD_IDLE, pdev, NULL, NULL, iodev_epumpid(pdev));
     LeaveCriticalSection(&pdev->fdCS);
 }
 
@@ -513,7 +634,6 @@ int iodev_unbind_epump (void * vdev)
     epump = (epump_t *)pdev->epump;
     if (epump) {
         epump_iodev_del(epump, pdev->fd);
-
         if (epump->delpoll)
             (*epump->delpoll)(epump, pdev);
     }
@@ -524,14 +644,20 @@ int iodev_unbind_epump (void * vdev)
     return 0;
 }
 
-int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
+int iodev_bind_epump (void * vdev, int bindtype, ulong epumpid, int nopoll)
 {
 #ifdef HAVE_IOCP
     iodev_t   * pdev = (iodev_t *)vdev;
+    epcore_t  * pcore = NULL;
 
     if (!pdev) return -1;
 
-    pdev->epump = vepump;
+    pcore = (epcore_t *)pdev->epcore;
+    if (!pcore) return -2;
+
+    if (epumpid > 0)
+        pdev->epump = epump_thread_find(pcore, epumpid);
+
     if (!pdev->epump)
         pdev->epump = epump_thread_select(pdev->epcore);
     pdev->bindtype = BIND_ONE_EPUMP;
@@ -541,51 +667,74 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
 #else
     iodev_t   * pdev = (iodev_t *)vdev;
     epcore_t  * pcore = NULL;
-    epump_t   * epump = (epump_t *)vepump;
+    epump_t   * epump = NULL;
     worker_t  * wker = NULL;
     epump_t   * curep = NULL;
     ioevent_t * ioe = NULL;
     ulong       threadid = 0;
-    ulong       epumpid = 0;
 
     if (!pdev) return -1;
 
-    if (bindtype == BIND_NONE) //0, do not bind any epump
-        return 0;
-
     pcore = (epcore_t *)pdev->epcore;
     if (!pcore) return -2;
+
+    /* The purpose of locking fdCS here is to ensure that the release of
+       iodev and the bind operation are linear and serial.*/
+    EnterCriticalSection(&pdev->fdCS);
+
+    if (pdev->fd == INVALID_SOCKET) {
+        LeaveCriticalSection(&pdev->fdCS);
+        return -3;
+    }
+
+    /* unbind from the previous epump thread */
+    iodev_unbind_epump(pdev);
+
+    if (bindtype == BIND_NONE) { //0, do not bind any epump
+        LeaveCriticalSection(&pdev->fdCS);
+        return 0;
+    }
 
     if (bindtype == BIND_CURRENT_EPUMP) { //5, epump will be system-decided
         pdev->bindtype = BIND_CURRENT_EPUMP; //5
 
         threadid = get_threadid();
-        wker = worker_thread_find(pcore, threadid);
-        if (wker && (ioe = wker->curioe)) {
-            epumpid = ioe->epumpid;
+        if (ht_num(pcore->worker_tab) <= 0) {
+            epump = epump_thread_find(pcore, threadid);
         } else {
-            curep = epump_thread_find(pcore, threadid);
-            if (curep && (ioe = curep->curioe)) {
+            wker = worker_thread_find(pcore, threadid);
+            if (wker && (ioe = wker->curioe)) {
                 epumpid = ioe->epumpid;
+            } else {
+                curep = epump_thread_find(pcore, threadid);
+                if (curep && (ioe = curep->curioe)) {
+                    epumpid = ioe->epumpid;
+                }
             }
+
+            if (epumpid > 0)
+                epump = epump_thread_find(pcore, epumpid);
         }
 
-        if (epumpid > 0)
-            epump = epump_thread_find(pcore, epumpid);
-
-        if (!epump)
+        if (!epump) {
             epump = epump_thread_select(pcore);
+
+            tolog(1, "Panic: dev:[%lu %d %s %d %d] in curePump %lu epumpid=%lu BindTo different epump %lu\n",
+                  pdev->id, pdev->fd, pdev->remote_ip, pdev->fdtype, pdev->bindtype,
+                  threadid, epumpid, epump?epump->threadid:0);
+        }
 
         if (!epump) {
             /* add to global list for the loading in future-starting threads */
             epcore_global_iodev_add(pcore, pdev);
+            LeaveCriticalSection(&pdev->fdCS);
             return 0;
         }
 
         pdev->epump = epump;
 
         epump_iodev_add(epump, pdev);
-        (*epump->setpoll)(epump, pdev);
+        if (!nopoll) (*epump->setpoll)(epump, pdev);
 
     } else if (bindtype == BIND_ONE_EPUMP) { //1, epump will be system-decided
         pdev->bindtype = BIND_ONE_EPUMP; //1
@@ -594,20 +743,31 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
         if (!epump) {
             /* add to global list for the loading in future-starting threads */
             epcore_global_iodev_add(pcore, pdev);
+            LeaveCriticalSection(&pdev->fdCS);
             return 0;
         }
 
         pdev->epump = epump;
 
         epump_iodev_add(epump, pdev);
-        (*epump->setpoll)(epump, pdev);
+        if (!nopoll) (*epump->setpoll)(epump, pdev);
 
-    } else if (bindtype == BIND_GIVEN_EPUMP && epump) { //2, epump is the para-given
+    } else if (bindtype == BIND_GIVEN_EPUMP) { //2, epump is the para-given
+        epump = epump_thread_find(pcore, epumpid);
+        if (!epump && epumpid == get_threadid()) {
+            wker = worker_thread_find(pcore, epumpid);
+            if (wker && (ioe = wker->curioe)) {
+                epumpid = ioe->epumpid;
+                epump = epump_thread_find(pcore, epumpid);
+            }
+        }
+        if (!epump) epump = epump_thread_select(pcore);
+
         pdev->bindtype = BIND_GIVEN_EPUMP;  //2
         pdev->epump = epump;
 
         epump_iodev_add(epump, pdev);
-        (*epump->setpoll)(epump, pdev);
+        if (!nopoll) (*epump->setpoll)(epump, pdev);
 
     } else if (bindtype == BIND_ALL_EPUMP) { //3, all epumps need to be bound
         pdev->bindtype = BIND_ALL_EPUMP;  //3
@@ -630,13 +790,20 @@ int iodev_bind_epump (void * vdev, int bindtype, void * vepump)
             if (!epump) {
                 /* add to global list for the loading in future-starting threads */
                 epcore_global_iodev_add(pcore, pdev);
+                LeaveCriticalSection(&pdev->fdCS);
                 return 0;
             }
         }
 
         epump_iodev_add(epump, pdev);
-        (*epump->setpoll)(epump, pdev);
+        if (!nopoll) (*epump->setpoll)(epump, pdev);
     }
+
+    if (epump && ht_num(pcore->worker_tab) <= 0) {
+        pdev->threadid = epump->threadid;
+    }
+
+    LeaveCriticalSection(&pdev->fdCS);
 
     return 1;
 #endif
@@ -686,6 +853,19 @@ void * iodev_epump (void * vpdev)
     if (!pdev) return NULL;
 
     return pdev->epump;
+}
+
+ulong iodev_epumpid (void * vpdev)
+{
+    iodev_t  * pdev = (iodev_t *)vpdev;
+    epump_t  * epump = NULL;
+
+    if (!pdev) return 0;
+
+    epump = (epump_t *)pdev->epump;
+    if (epump) return epump->threadid;
+
+    return 0;
 }
 
 SOCKET iodev_fd (void * vpdev)

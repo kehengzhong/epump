@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #include "btype.h"
@@ -20,7 +44,6 @@ void * epfile_bind_fd (void * vpcore, int fd, void * para, IOHandler * ioh, void
     if (!pcore) return NULL;
     if (fd == INVALID_SOCKET) return NULL;
  
-    //pdev = epcore_iodev_get(pcore, fd);
     if (!pdev) pdev = iodev_new(pcore);
     if (!pdev) return NULL;
  
@@ -36,7 +59,7 @@ void * epfile_bind_fd (void * vpcore, int fd, void * para, IOHandler * ioh, void
     iodev_rwflag_set(pdev, RWF_READ);
  
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_ONE_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_ONE_EPUMP, 0, 0);
 
     return pdev;
 }
@@ -49,7 +72,6 @@ void * epfile_bind_stdin (void * vpcore, void * para, IOHandler * ioh, void * io
  
     if (!pcore) return NULL;
  
-    //pdev = epcore_iodev_get(pcore, fd);
     if (!pdev) pdev = iodev_new(pcore);
     if (!pdev) return NULL;
  
@@ -65,7 +87,7 @@ void * epfile_bind_stdin (void * vpcore, void * para, IOHandler * ioh, void * io
     iodev_rwflag_set(pdev, RWF_READ);
  
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_ONE_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_ONE_EPUMP, 0, 0);
 
     return pdev;
 }

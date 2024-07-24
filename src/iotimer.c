@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #include "btype.h"
@@ -25,12 +49,34 @@ int iotimer_init (void * vtimer)
     if (!iot) return -1;
 
     iot->res[0] = iot->res[1] = NULL;
+    iot->res[2] = iot->res[3] = NULL;
+
+    iot->cmdid = 0;
+    iot->id = 0;
     iot->para = NULL;
+    memset(&iot->bintime, 0, sizeof(iot->bintime));
+
     iot->callback = NULL;
     iot->cbpara = NULL;
-    iot->cmdid = 0;
+
+    iot->epump = NULL;
     iot->threadid = 0;
-    memset(&iot->bintime, 0, sizeof(iot->bintime));
+    return 0;
+}
+
+int epcore_iotimer_free (void * vtimer)
+{
+    iotimer_t * iot = (iotimer_t *)vtimer;
+    epcore_t  * pcore = NULL;
+
+    if (!iot) return -1;
+
+    pcore = iot->epcore;
+    if (!pcore) return -2;
+
+    if (iotimer_free(iot) == 0)
+        mpool_recycle(pcore->timer_pool, iot);
+
     return 0;
 }
 
@@ -41,9 +87,6 @@ void iotimer_void_free(void * vtimer)
 
 int iotimer_free(void * vtimer)
 {
-    iotimer_t * iot = (iotimer_t *)vtimer;
-
-    kfree(iot);
     return 0;
 }
 
@@ -55,8 +98,12 @@ int iotimer_cmp_iotimer(void * a, void * b)
     if (!a || !b) return -1;
 
     if (btime_cmp(&iota->bintime, >, &iotb->bintime)) return 1;
-    if (btime_cmp(&iota->bintime, ==, &iotb->bintime)) return 0;
-    return -1;
+    if (btime_cmp(&iota->bintime, <, &iotb->bintime)) return -1;
+
+    if (iota->id > iotb->id) return 1;
+    if (iota->id < iotb->id) return -1;
+
+    return 0;
 }
 
 int iotimer_cmp_id (void * a, void * b)
@@ -83,10 +130,9 @@ iotimer_t * iotimer_fetch (void * vpcore)
 
     if (!pcore) return NULL;
 
-    iot = bpool_fetch(pcore->timer_pool);
+    iot = mpool_fetch(pcore->timer_pool);
     if (!iot) {
-        iot = kzalloc(sizeof(*iot));
-        if (!iot) return NULL;
+        return NULL;
     }
 
     iotimer_init(iot);
@@ -103,33 +149,30 @@ iotimer_t * iotimer_fetch (void * vpcore)
     return iot;
 }
 
-int iotimer_recycle (void * viot)
+int iotimer_recycle (void * vpcore, ulong iotid)
 {
-    epcore_t  * pcore = NULL;
+    epcore_t  * pcore = (epcore_t *)vpcore;
+    iotimer_t * iot = NULL;
     epump_t   * epump = NULL;
-    iotimer_t * iot = (iotimer_t *)viot;
 
-    if (!iot) return -1;
+    if (!pcore) return -1;
 
-    pcore = (epcore_t *)iot->epcore;
-    if (!pcore) return -2;
-
-    if (epcore_iotimer_del(pcore, iot->id) != iot)
+    if ((iot = epcore_iotimer_del(pcore, iotid)) == NULL)
         return 0;
 
     epump = (epump_t *)iot->epump;
     if (epump) {
         EnterCriticalSection(&epump->timertreeCS);
-        rbtree_delete_node(epump->timer_tree, iot);
+        rbtree_delete(epump->timer_tree, iot);
         LeaveCriticalSection(&epump->timertreeCS);
     }
 
-    bpool_recycle(pcore->timer_pool, iot);
+    mpool_recycle(pcore->timer_pool, iot);
     return 0;
 }
 
-void * iotimer_start (void * vpcore, int ms, int cmdid, void * para, 
-                       IOHandler * cb, void * cbpara)
+void * iotimer_start(void * vpcore, int ms, int cmdid, void * para, 
+                     IOHandler * cb, void * cbpara, ulong epumpid)
 {   
     epcore_t  * pcore = (epcore_t *)vpcore;
     epump_t   * epump = NULL;
@@ -149,14 +192,15 @@ void * iotimer_start (void * vpcore, int ms, int cmdid, void * para,
 
     /* assign to the caller threadid 
        indicates the current worker thread will handle the upcoming timeout event */
-    if (pcore->dispmode == 1)
-        iot->threadid = get_threadid();
+    iot->threadid = get_threadid();
 
-    epump = iot->epump = epump_thread_select(pcore);
+    if (epumpid < 10) epumpid = iot->threadid;
+    if (epumpid > 10)
+        epump = iot->epump =  epump_thread_get(pcore, epumpid);
+
     if (!iot->epump) {
-        tolog(1, "iotimer_start: %ld cmdid=%d failed to select an epump\n", iot->id, iot->cmdid);
         epcore_global_iotimer_add(pcore, iot);
-        return iot;
+        return (void *)iot->id;
     }
 
     EnterCriticalSection(&epump->timertreeCS);
@@ -169,29 +213,35 @@ void * iotimer_start (void * vpcore, int ms, int cmdid, void * para,
     if (get_threadid() != epump->threadid)
         epump_wakeup_send(epump);
 
-    return iot;
+    return (void *)iot->id;
 }
 
-int iotimer_stop (void * viot)
+int iotimer_stop_dbg (void * vpcore, void * iotid, char * file, int line)
 {
+    epcore_t  * pcore = (epcore_t *)vpcore;
     epump_t   * epump = NULL;
-    iotimer_t * iot = (iotimer_t *)viot;
+    iotimer_t * iot = NULL;
+    iotimer_t * iter = NULL;
     int         ret = 0;
 
-    if (!iot) return -1;
+    if (!pcore) return -1;
 
-    if (epcore_iotimer_find(iot->epcore, iot->id) != iot)
+    iot = epcore_iotimer_del(pcore, (ulong)iotid);
+    if (!iot || iot->id != (ulong)iotid) {
+        tolog(1, "TimClo: %s iotid=%lu iot->id=%lu %s:%d\n",
+              iot==NULL?"NotFound":"IDError", (ulong)iotid, iot?iot->id:0, file, line);
         return 0;
+    }
 
     epump = (epump_t *)iot->epump;
 
     if (epump) {
 
         EnterCriticalSection(&epump->timertreeCS);
-        ret = rbtree_delete_node(epump->timer_tree, iot);
+        iter = rbtree_delete(epump->timer_tree, iot);
         LeaveCriticalSection(&epump->timertreeCS);
 
-        if (ret >= 0) {
+        if (iter != NULL) {
             /* ret >= 0 indicates that the iotimer instance not timeout,
                still in red-black tree */
 
@@ -215,9 +265,43 @@ int iotimer_stop (void * viot)
         }
     }
 
-    iotimer_recycle(iot);
-
+    mpool_recycle(pcore->timer_pool, iot);
     return 0;
+}
+
+void epump_iotimer_print (void * vepump, int printtype)
+{
+    epump_t    * epump = (epump_t *) vepump;
+    iotimer_t  * iot = NULL;
+    int          i, num, iter = 0;
+    rbtnode_t  * rbtn = NULL;
+    char         buf[32768];
+
+    if (!epump) return;
+
+    EnterCriticalSection(&epump->timertreeCS);
+
+    rbtn = rbtree_min_node(epump->timer_tree);
+    num = rbtree_num(epump->timer_tree);
+
+    sprintf(buf, " ePump:%lu TimerNum=%d :", epump->threadid, num);
+    iter = strlen(buf);
+
+    for (i = 0; i < num && rbtn; i++) {
+        iot = RBTObj(rbtn);
+        rbtn = rbtnode_next(rbtn);
+
+        if (!iot) continue;
+
+        sprintf(buf+iter, " %ld.%ld/%d/%lu",
+                iot->bintime.s%10000, iot->bintime.ms, iot->cmdid, iot->id);
+        iter = strlen(buf);
+        if (iter > sizeof(buf) - 16) break;
+    }
+    if (printtype == 0) printf("%s\n", buf);
+    else if (printtype == 1) tolog(1, "%s\n", buf);
+
+    LeaveCriticalSection(&epump->timertreeCS);
 }
 
 
@@ -228,16 +312,17 @@ int iotimer_check_timeout (void * vepump, btime_t * pdiff, int * pevnum)
 {
     epump_t   * epump = (epump_t *)vepump;
     btime_t     systime;
+    rbtnode_t * rbtn = NULL;
     iotimer_t * iot = NULL;
     int         evnum = 0;
 
-    if (!epump) return -1;
     if (pevnum) *pevnum = 0;
+    if (!epump) return -1;
 
     while (1) {
         EnterCriticalSection(&epump->timertreeCS);
-        iot = rbtree_min(epump->timer_tree);
-        if (!iot) {
+        rbtn = rbtree_min_node(epump->timer_tree);
+        if (rbtn == NULL || (iot = RBTObj(rbtn)) == NULL) {
             LeaveCriticalSection(&epump->timertreeCS);
             if (pevnum) *pevnum = evnum;
             return -10;
@@ -245,13 +330,9 @@ int iotimer_check_timeout (void * vepump, btime_t * pdiff, int * pevnum)
 
         btime(&systime);
         if (btime_cmp(&iot->bintime, <=, &systime)) {
-            rbtree_delete_node(epump->timer_tree, iot);
+            if (rbtree_delete_node(epump->timer_tree, rbtn) < 0)
+                epump_iotimer_print(epump, 1);
             LeaveCriticalSection(&epump->timertreeCS);
-
-            if (!iot) {
-                if (pevnum) *pevnum = evnum;
-                return -11;
-            }
 
             PushTimeoutEvent(epump, iot);
             evnum++;
@@ -264,7 +345,7 @@ int iotimer_check_timeout (void * vepump, btime_t * pdiff, int * pevnum)
     }
 
     if (pevnum) *pevnum = evnum;
-    return 1;
+    return evnum > 0 ? 1 : 0;
 }
 
 
@@ -303,6 +384,18 @@ void * iotimer_epump (void * viot)
 
     return iot->epump;
 }
+
+ulong iotimer_epumpid (void * viot)
+{
+    iotimer_t * iot = (iotimer_t *)viot;
+    epump_t   * epump = NULL;
+
+    if (!iot) return 0;
+
+    epump = iot->epump;
+    return epump ? epump->threadid : 0;
+}
+
 
 ulong iotimer_workerid (void * viot)
 {

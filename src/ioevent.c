@@ -1,12 +1,37 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #include "btype.h"
 #include "bpool.h"
 #include "mthread.h"
 #include "memory.h"
+#include "trace.h"
 
 #include "epcore.h"
 #include "epump_local.h"
@@ -23,11 +48,6 @@
 
 int ioevent_free (void * vioe)
 {
-    ioevent_t * ioe = (ioevent_t *)vioe;
-
-    if (!ioe) return -1;
-
-    kfree(ioe);
     return 0;
 }
 
@@ -41,6 +61,18 @@ int epump_ioevent_push (epump_t * epump, ioevent_t * ioe)
     lt_append(epump->ioevent_list, ioe);
     LeaveCriticalSection(&epump->ioeventlistCS);
 
+#ifdef _DEBUG
+{
+    int  num;
+    char title[128];
+
+    num = lt_num(epump->ioevent_list);
+
+    sprintf(title, "EPump: %lu RecvEvent[%d] ", epump->threadid, num);
+    ioevent_print(ioe, title);
+}
+#endif
+
     return 0;
 }
 
@@ -48,6 +80,7 @@ int ioevent_dispatch (void * vepump, void * vioe)
 {
     epump_t    * epump = (epump_t *)vepump;
     worker_t   * wker = NULL;
+    epump_t    * dstepump = NULL;
     ioevent_t  * ioe = (ioevent_t *)vioe;
     epcore_t   * pcore = NULL;
     iodev_t    * pdev = NULL;
@@ -69,20 +102,23 @@ int ioevent_dispatch (void * vepump, void * vioe)
     case IOE_INVALID_DEV:
         pdev = (iodev_t *)ioe->obj;
         if (!pdev || pdev->fd == INVALID_SOCKET) {
-            bpool_recycle(pcore->event_pool, ioe);
+            tolog(1, "Panic: diapatch device event failed, type=%d ioe->obj=NULL\n", ioe->type);
+            mpool_recycle(pcore->event_pool, ioe);
             return -100;
         }
-        ioe->objid = pdev->id;
 
+        ioe->objid = pdev->id;
         threadid = pdev->threadid;
+        dstepump = epump;
         break;
 
-    /* when ListenDev accepts a connect request, we keep its threadid value 0.
-       it causes the lowest worker thread will be assigned for event handling */
+    /* When ListenDev accepts a connection request, we keep its threadid value at 0.
+       It causes the worker thread with the lowest load to be assigned for event processing */
     case IOE_ACCEPT:
         pdev = (iodev_t *)ioe->obj;
         if (!pdev || pdev->fd == INVALID_SOCKET) {
-            bpool_recycle(pcore->event_pool, ioe);
+            tolog(1, "Panic: diapatch device event IOE_ACCEPT failed, ioe->obj=NULL\n");
+            mpool_recycle(pcore->event_pool, ioe);
             return -100;
         }
 
@@ -92,54 +128,91 @@ int ioevent_dispatch (void * vepump, void * vioe)
     case IOE_TIMEOUT:
         piot = (iotimer_t *)ioe->obj;
         if (!piot) {
-            bpool_recycle(pcore->event_pool, ioe);
+            tolog(1, "Panic: diapatch IOE_TIMER event failed, ioe->obj=NULL\n");
+            mpool_recycle(pcore->event_pool, ioe);
             return -101;
         }
 
+        ioe->objid = piot->id;
         threadid = piot->threadid;
+        dstepump = epump;
         break;
 
     case IOE_DNS_RECV:
         dnsmsg = (DnsMsg *)ioe->obj;
         if (!dnsmsg) {
-            bpool_recycle(pcore->event_pool, ioe);
+            tolog(1, "Panic: diapatch IOE_DNS_RECV event failed, ioe->obj=NULL\n");
+            mpool_recycle(pcore->event_pool, ioe);
             return -101;
         }
 
+        ioe->objid = dnsmsg->msgid;
+        threadid = dnsmsg->threadid;
+        break;
+
+    case IOE_DNS_CLOSE:
+        dnsmsg = (DnsMsg *)ioe->obj;
+        if (!dnsmsg) {
+            tolog(1, "Panic: diapatch IOE_DNS_CLOSE event failed, ioe->obj=NULL\n");
+            mpool_recycle(pcore->event_pool, ioe);
+            return -101;
+        }
+
+        ioe->objid = dnsmsg->msgid;
         threadid = dnsmsg->threadid;
         break;
 
     case IOE_USER_DEFINED:
-        threadid = get_threadid();
+        pdev = (iodev_t *)ioe->obj;
+        if (pdev && epcore_iodev_find(pcore, pdev->id) == pdev) {
+            ioe->objid = pdev->id;
+            threadid = pdev->threadid;
+        } else {
+            threadid = get_threadid();
+        }
         break;
     }
 
-    if (threadid > 0)
-        wker = worker_thread_find(pcore, threadid);
+    if (ht_num(pcore->worker_tab) > 0) {
+        if (threadid > 0)
+            wker = worker_thread_find(pcore, threadid);
 
-    if (!wker) {
-        wker = worker_thread_select(pcore);
-        newchoice = 1;
-    }
-
-    if (wker) {
-        if (pdev && (pdev->threadid < 10 || newchoice)) {
-            pdev->threadid = wker->threadid;
+        if (!wker) {
+            wker = worker_thread_select(pcore);
+            newchoice = 1;
         }
-        if (piot) piot->threadid = wker->threadid;
-        if (dnsmsg) dnsmsg->threadid = wker->threadid;
 
-        ioe->workerid = wker->threadid;
+        if (wker) {
+            if (pdev && (pdev->threadid < 10 || newchoice)) {
+                pdev->threadid = wker->threadid;
+            }
+            if (piot) piot->threadid = wker->threadid;
+            if (dnsmsg) dnsmsg->threadid = wker->threadid;
 
-        return worker_ioevent_push(wker, ioe);
+            ioe->workerid = wker->threadid;
 
-    } else {
-        if (pdev) pdev->threadid = 0;
-        if (piot) piot->threadid = 0;
-        if (dnsmsg) dnsmsg->threadid = 0;
-
-        return epump_ioevent_push(epump, ioe);
+            return worker_ioevent_push(wker, ioe);
+        }
     }
+
+    if (ioe->type == IOE_ACCEPT) {
+        if (!dstepump) dstepump = epump;
+
+        return epump_ioevent_push(dstepump, ioe);
+    }
+
+    if (!dstepump) {
+        if (threadid > 0 && threadid != epump->threadid)
+            dstepump = epump_thread_find(pcore, threadid);
+
+        if (!dstepump) dstepump = epump;
+    }
+
+    if (pdev) pdev->threadid = dstepump->threadid;
+    if (piot) piot->threadid = dstepump->threadid;
+    if (dnsmsg) dnsmsg->threadid = dstepump->threadid;
+
+    return epump_ioevent_push(dstepump, ioe);
 }
 
 
@@ -150,8 +223,11 @@ int ioevent_push (void * vepump, int event, void * obj, void * cb, void * cbpara
 
     if (!epump) return -1;
 
-    ioe = (ioevent_t *)bpool_fetch(epump->epcore->event_pool);
-    if (!ioe) return -10;
+    ioe = (ioevent_t *)mpool_fetch(epump->epcore->event_pool);
+    if (!ioe) {
+        tolog(1, "Panic: ioevent_push ioe fetched failed, event=%d\n", event);
+        return -10;
+    }
 
     ioe->type = event;
     ioe->obj = obj;
@@ -163,14 +239,7 @@ int ioevent_push (void * vepump, int event, void * obj, void * cb, void * cbpara
     ioe->epumpid = epump->threadid;
     ioe->workerid = 0;
 
-    EnterCriticalSection(&epump->epcore->eventnumCS);
     epump->epcore->acc_event_num++;
-    LeaveCriticalSection(&epump->epcore->eventnumCS);
-
-    if (arr_num(epump->epcore->worker_list) <= 0)
-        return epump_ioevent_push(epump, ioe);
-
-    /* find a worker thread and dispatch the event to worker event queue. */
 
     return ioevent_dispatch(epump, ioe);
 }
@@ -227,7 +296,10 @@ int ioevent_remove (void * vepump, void * obj)
         ioetmp = lt_get_next(ioe);
         if (ioe->obj == obj) {
             lt_delete_ptr(epump->ioevent_list, ioe);
-            bpool_recycle(pcore->event_pool, ioe);
+
+            mpool_recycle(pcore->event_pool, ioe);
+            //kfree(ioe);
+
             num++;
         }
         ioe = ioetmp;
@@ -264,15 +336,6 @@ void * ioevent_execute (void * vpcore, void * vioe)
         return NULL;
     }
 
-    if (ioe->objid > 0 && 
-        epcore_iodev_find(pcore, ioe->objid) != ioe->obj) {
-
-        bpool_recycle(pcore->event_pool, ioe);
-        ioe = NULL;
-
-        return NULL;
-    }
-
     switch (ioe->type) {
     case IOE_CONNECTED:
     case IOE_CONNFAIL:
@@ -280,6 +343,11 @@ void * ioevent_execute (void * vpcore, void * vioe)
     case IOE_READ:
     case IOE_WRITE:
     case IOE_INVALID_DEV:
+        if (ioe->objid > 0 && epcore_iodev_find(pcore, ioe->objid) != ioe->obj) {
+            mpool_recycle(pcore->event_pool, ioe);
+            return NULL;
+        }
+
         pdev = (iodev_t *)ioe->obj;
         if (!pdev || pdev->fd == INVALID_SOCKET)
             break;
@@ -304,7 +372,7 @@ void * ioevent_execute (void * vpcore, void * vioe)
         ptmp = epcore_iodev_find(pcore, curid);
 
         if (ioe->type == IOE_INVALID_DEV && ptmp) {
-            iodev_close(ptmp);
+            iodev_close_by(pcore, curid);
             ptmp = NULL;
 
         } else if (ptmp && ptmp->fd != INVALID_SOCKET) {
@@ -333,9 +401,16 @@ void * ioevent_execute (void * vpcore, void * vioe)
  
     case IOE_TIMEOUT:
         piot = (iotimer_t *)ioe->obj;
+        if (ioe->objid == 0 && piot) ioe->objid = piot->id;
+
+        if (epcore_iotimer_find(pcore, ioe->objid) != ioe->obj) {
+            mpool_recycle(pcore->event_pool, ioe);
+            return NULL;
+        }
+
         if (piot->cmdid == IOTCMD_IDLE) { //system inner timeout
-            /* the device in the idle table has enough time not to be in use,
-             * system should discard it from the idle table: close the connection,
+            /* the devices in idle table have not been used for a long time,
+             * and the system should clean them up. close the connection,
              * recycle the device resource etc. */
  
             pdev = (iodev_t *)piot->para;
@@ -349,15 +424,31 @@ void * ioevent_execute (void * vpcore, void * vioe)
                 (*pcore->callback)(pcore->cbpara, piot, ioe->type, FDT_TIMER);
         }
 
-        iotimer_recycle(piot);
-
+        iotimer_recycle(pcore, ioe->objid);
         break;
  
     case IOE_DNS_RECV:
+        if (ioe->objid > 0 && dns_msg_mgmt_get(pcore->dnsmgmt, (uint16)ioe->objid) != ioe->obj) {
+            mpool_recycle(pcore->event_pool, ioe);
+            return NULL;
+        }
+
         dnsmsg = (DnsMsg *)ioe->obj;
         if (!dnsmsg) break;
 
         dns_msg_handle(dnsmsg);
+        break;
+
+    case IOE_DNS_CLOSE:
+        if (ioe->objid > 0 && dns_msg_mgmt_get(pcore->dnsmgmt, (uint16)ioe->objid) != ioe->obj) {
+            mpool_recycle(pcore->event_pool, ioe);
+            return NULL;
+        }
+
+        dnsmsg = (DnsMsg *)ioe->obj;
+        if (!dnsmsg) break;
+
+        dns_msg_close(dnsmsg);
         break;
 
     default:
@@ -370,7 +461,7 @@ void * ioevent_execute (void * vpcore, void * vioe)
     }
  
     /* recycle event to pool */
-    bpool_recycle(pcore->event_pool, ioe);
+    mpool_recycle(pcore->event_pool, ioe);
 
     return NULL;
 }
@@ -424,6 +515,7 @@ void ioevent_print (void * vioe, char * title)
     else if (ioe->type == IOE_WRITE)       sprintf(buf+strlen(buf), "IOE_WRITE");
     else if (ioe->type == IOE_TIMEOUT)     sprintf(buf+strlen(buf), "IOE_TIMEOUT");
     else if (ioe->type == IOE_DNS_RECV)    sprintf(buf+strlen(buf), "IOE_DNS_RECV");
+    else if (ioe->type == IOE_DNS_CLOSE) sprintf(buf+strlen(buf), "IOE_DNS_CLOSE");
     else if (ioe->type == IOE_INVALID_DEV) sprintf(buf+strlen(buf), "IOE_INVALID_DEV");
     else                                   sprintf(buf+strlen(buf), "Unknown");
 
@@ -445,9 +537,6 @@ void ioevent_print (void * vioe, char * title)
         else if (pdev->fdtype == FDT_USOCK_ACCEPTED)  sprintf(buf+strlen(buf), "FDT_USOCK_ACCEPTED");
         else                                          sprintf(buf+strlen(buf), "Unknown Type");
 
-        /*sprintf(buf+strlen(buf), " FD=%d WID=%lu R<%s:%d> L<%s:%d>",
-                 pdev->fd, pdev->threadid, pdev->remote_ip, pdev->remote_port,
-                 pdev->local_ip, pdev->local_port);*/
         sprintf(buf+strlen(buf), " FD=%d R<%s:%d> L<%s:%d>",
                  pdev->fd, pdev->remote_ip, pdev->remote_port,
                  pdev->local_ip, pdev->local_port);
@@ -459,6 +548,10 @@ void ioevent_print (void * vioe, char * title)
                     ((iotimer_t *)ioe->obj)->threadid);
 
         } else if (ioe->obj && ioe->type == IOE_DNS_RECV) {
+            dnsmsg = (DnsMsg *)ioe->obj;
+            sprintf(buf+strlen(buf), " Name=%s MsgID=%u RCode=%d AnsNum=%d WID=%lu",
+                    dnsmsg->name, dnsmsg->msgid, dnsmsg->rcode, dnsmsg->an_num, dnsmsg->threadid);
+        } else if (ioe->obj && ioe->type == IOE_DNS_CLOSE) {
             dnsmsg = (DnsMsg *)ioe->obj;
             sprintf(buf+strlen(buf), " Name=%s MsgID=%u RCode=%d AnsNum=%d WID=%lu",
                     dnsmsg->name, dnsmsg->msgid, dnsmsg->rcode, dnsmsg->an_num, dnsmsg->threadid);

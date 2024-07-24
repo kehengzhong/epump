@@ -1,11 +1,36 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #include "btype.h"
 #include "tsock.h"
 #include "frame.h"
+#include "strutil.h"
 
 #include "epcore.h"
 #include "iodev.h"
@@ -92,6 +117,8 @@ SOCKET udp_listen_all (char * localip, int port, void * psockopt,
             fdlist[num].family = rp->ai_family;
             fdlist[num].socktype = rp->ai_socktype;
             fdlist[num].protocol = rp->ai_protocol;
+            sock_addr_ntop(rp->ai_addr, fdlist[num].addr);
+            fdlist[num].port = sock_addr_port(rp->ai_addr);
             num++;
         } else
             break;
@@ -109,9 +136,9 @@ SOCKET udp_listen_all (char * localip, int port, void * psockopt,
 }
 
  
-void * epudp_listen_create (void * vpcore, char * localip, int port, void * para,
-                            int * retval, IOHandler * cb, void * cbpara,
-                            iodev_t ** devlist, int * devnum)
+void * epudp_listen_create (void * vpcore, char * localip, int port, void * popt,
+                            void * para, IOHandler * cb, void * cbpara,
+                            iodev_t ** devlist, int * devnum, int * retval)
 {
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * pdev = NULL;
@@ -136,6 +163,8 @@ void * epudp_listen_create (void * vpcore, char * localip, int port, void * para
     sockopt.mask |= SOM_KEEPALIVE;
     sockopt.keepalive = 1;
 
+    if (popt) sock_option_add(&sockopt, (sockopt_t *)popt);
+
     udp_listen_all(localip, port, &sockopt, fdlist, &fdnum);
     if (fdnum <= 0) {
         if (retval) *retval = -200;
@@ -158,9 +187,8 @@ void * epudp_listen_create (void * vpcore, char * localip, int port, void * para
 
         sock_nonblock_set(pdev->fd, 1);
  
-        if (localip)
-            strncpy(pdev->local_ip, localip, sizeof(pdev->local_ip)-1);
-        pdev->local_port = port;
+        strncpy(pdev->local_ip, fdlist[i].addr, sizeof(pdev->local_ip)-1);
+        pdev->local_port = fdlist[i].port;
 
         pdev->para = para;
         pdev->callback = cb;
@@ -192,8 +220,9 @@ void * epudp_listen_create (void * vpcore, char * localip, int port, void * para
     return pdev;
 }
 
-void * epudp_listen (void * vpcore, char * localip, int port, void * para, int * pret,
-                     IOHandler * cb, void * cbpara, int bindtype, void ** plist, int * listnum)
+void * epudp_listen (void * vpcore, char * localip, int port, void * popt, void * para,
+                     IOHandler * cb, void * cbpara, int bindtype, void ** plist,
+                     int * listnum, int * pret)
 {
     epcore_t * pcore = (epcore_t *)vpcore;
     iodev_t  * pdev = NULL;
@@ -217,8 +246,8 @@ void * epudp_listen (void * vpcore, char * localip, int port, void * para, int *
         bindtype != BIND_ALL_EPUMP)
         return NULL;
  
-    pdev = epudp_listen_create(pcore, localip, port, para, pret,
-                               cb, cbpara, devlist, &devnum);
+    pdev = epudp_listen_create(pcore, localip, port, popt, para,
+                               cb, cbpara, devlist, &devnum, pret);
     if (devnum <= 0) {
         if (listnum) *listnum = 0;
         return NULL;
@@ -226,7 +255,7 @@ void * epudp_listen (void * vpcore, char * localip, int port, void * para, int *
  
     for (i = 0; i < devnum; i++) {
         /* bind one/more epump threads according to bindtype */
-        iodev_bind_epump(devlist[i], bindtype, NULL);
+        iodev_bind_epump(devlist[i], bindtype, 0, 0);
  
         if (plist && listnum && i < *listnum)
             plist[num++] = devlist[i];
@@ -245,8 +274,8 @@ void * epudp_listen (void * vpcore, char * localip, int port, void * para, int *
     return pdev;
 }
  
-void * epudp_mlisten (void * vpcore, char * localip, int port, void * para,  
-                      IOHandler * cb, void * cbpara)
+void * epudp_mlisten (void * vpcore, char * localip, int port, void * popt,
+                      void * para,  IOHandler * cb, void * cbpara)
 {                            
     epcore_t * pcore = (epcore_t *)vpcore; 
     
@@ -254,14 +283,14 @@ void * epudp_mlisten (void * vpcore, char * localip, int port, void * para,
  
     if (port <= 0 || port >= 65536) return NULL;
  
-    return mlisten_open(pcore, localip, port, FDT_UDPSRV, para, cb, cbpara);
+    return mlisten_open(pcore, localip, port, FDT_UDPSRV, popt, para, cb, cbpara);
 }
 
 
 
-void * epudp_client (void * vpcore, char * localip, int port,
-                     void * para, int * retval, IOHandler * cb, void * cbpara,
-                     iodev_t ** devlist, int * devnum)
+void * epudp_client (void * vpcore, char * localip, int port, void * popt,
+                     void * para, IOHandler * cb, void * cbpara,
+                     iodev_t ** devlist, int * devnum, int * retval)
 {
     epcore_t  * pcore = (epcore_t *)vpcore;
     iodev_t   * pdev = NULL;
@@ -285,6 +314,8 @@ void * epudp_client (void * vpcore, char * localip, int port,
  
     sockopt.mask |= SOM_KEEPALIVE;
     sockopt.keepalive = 1;
+
+    if (popt) sock_option_add(&sockopt, (sockopt_t *)popt);
 
     udp_listen_all(localip, port, &sockopt, fdlist, &fdnum);
     if (fdnum <= 0) {
@@ -322,7 +353,7 @@ void * epudp_client (void * vpcore, char * localip, int port,
         iodev_rwflag_set(pdev, RWF_READ);
  
         /* epump is system-decided: select one lowest load epump thread to be bound */
-        iodev_bind_epump(pdev, BIND_ONE_EPUMP, NULL);
+        iodev_bind_epump(pdev, BIND_ONE_EPUMP, 0, 0);
 
 #ifdef HAVE_IOCP
         iocp_event_recvfrom_post(pdev, NULL, 0);
@@ -349,7 +380,7 @@ void * epudp_client (void * vpcore, char * localip, int port,
     return pdev;
 }
 
-int epudp_recvfrom (void * vdev, void * vfrm, void * addr, int * pnum)
+int epudp_recvfrom (void * vdev, void * vfrm, void * pbuf, int bufsize, void * addr, int * pnum)
 {
     iodev_t       * pdev = (iodev_t *)vdev;
     frame_p         frm = (frame_p)vfrm;
@@ -363,35 +394,55 @@ int epudp_recvfrom (void * vdev, void * vfrm, void * addr, int * pnum)
     if (pnum) *pnum = 0;
 
     if (!pdev) return -1;
-    if (!frm) return -2;
 
 #ifdef HAVE_IOCP
     ret = toread = frameL(pdev->rcvfrm);
     if (ret <= 0) return ret;
 
-    if (frame_rest(frm) < toread)
-        frame_grow(frm, toread);
+    if (frm) {
+        if (frame_rest(frm) < toread)
+            frame_grow(frm, toread);
 
-    frame_put_nlast(frm, frameP(pdev->rcvfrm), frameL(pdev->rcvfrm));
+        frame_put_nlast(frm, frameP(pdev->rcvfrm), frameL(pdev->rcvfrm));
+    }
+
+    if (pbuf && bufsize > 0) {
+        secure_memcpy(pbuf, bufsize, frameP(pdev->rcvfrm), frameL(pdev->rcvfrm));
+    }
 
     sock_addr_to_epaddr(&pdev->sock, (ep_sockaddr_t *)addr);
 
     frame_empty(pdev->rcvfrm);
 #else
-    toread = sock_unread_data(iodev_fd(pdev));
-    if (toread <= 0) toread = 8192;
-
-    if (frame_rest(frm) < toread)
-        frame_grow(frm, toread);
-
     socklen = sizeof(sock);
     memset(&sock, 0, sizeof(sock));
 
-    ret = recvfrom(iodev_fd(pdev), frame_end(frm), toread, 0,
-                   (struct sockaddr *)&sock, (socklen_t *)&socklen);
-    if (ret >= 0) {
-        sock_addr_to_epaddr(&sock, (ep_sockaddr_t *)addr);
-        frame_len_add(frm, ret);
+    toread = sock_unread_data(iodev_fd(pdev));
+
+    if (frm) {
+        if (toread <= 0) toread = 8192;
+        if (frame_rest(frm) < toread)
+            frame_grow(frm, toread);
+    
+        ret = recvfrom(iodev_fd(pdev), frame_end(frm), toread, 0,
+                       (struct sockaddr *)&sock, (socklen_t *)&socklen);
+        if (ret >= 0) {
+            if (pbuf && bufsize > 0)
+                secure_memcpy(pbuf, bufsize, frame_end(frm), ret);
+
+            frame_len_add(frm, ret);
+            sock_addr_to_epaddr(&sock, (ep_sockaddr_t *)addr);
+        }
+    } else if (pbuf && bufsize > 0) {
+        if (toread <= 0 || toread > bufsize) toread = bufsize;
+
+        ret = recvfrom(iodev_fd(pdev), pbuf, toread, 0,
+                       (struct sockaddr *)&sock, (socklen_t *)&socklen);
+        if (ret >= 0) {
+            if (frm) frame_put_nlast(frm, pbuf, ret);
+
+            sock_addr_to_epaddr(&sock, (ep_sockaddr_t *)addr);
+        }
     }
 #endif
 

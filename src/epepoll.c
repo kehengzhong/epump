@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #ifdef HAVE_EPOLL
@@ -94,10 +118,6 @@ int epump_epoll_setpoll (void * vepump, void * vpdev)
         else
             ev.events |= EPOLLIN | EPOLLET | EPOLLERR | EPOLLHUP;
         curev |= EPOLLIN;
-
-        //after test, OneShot of ListenDev does not solve thundering herd problem
-        /*if (pdev->fdtype == FDT_LISTEN)
-            ev.events |= EPOLLONESHOT;*/
     }
  
     if (pdev->rwflag & RWF_WRITE) {
@@ -133,11 +153,10 @@ int epump_epoll_setpoll (void * vepump, void * vpdev)
         break;
     }
 
-    if (ret < 0) return -1;
+    if (ret < 0) return ret;
 
     return 0;
 }
-
 
 int epump_epoll_clearpoll (void * vepump, void * vpdev)
 {
@@ -156,8 +175,6 @@ int epump_epoll_clearpoll (void * vepump, void * vpdev)
 
     return ret;
 }
-
-
 
 int epump_epoll_dispatch (void * veps, btime_t * delay)
 {

@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #ifdef HAVE_IOCP
@@ -27,7 +51,6 @@
 #include "epwakeup.h"
 
 #include <mswsock.h>
-#include <stddef.h>
 
 #include "epiocp.h"
 
@@ -174,6 +197,12 @@ void * iocp_event_recv_post (void * vdev, void * pbuf, int len)
 }
 
 
+void CALLBACK recvfrom_cb (DWORD err, DWORD bytes, LPWSAOVERLAPPED ovlap, DWORD flags)
+{
+    printf("err=%d  bytes=%d  flags=%d\n", err, bytes, flags);
+}
+
+
 void * iocp_event_recvfrom_post (void * vdev, void * pbuf, int len)
 {
     iodev_t      * pdev = (iodev_t *)vdev;
@@ -213,7 +242,7 @@ void * iocp_event_recvfrom_post (void * vdev, void * pbuf, int len)
 
     ret = WSARecvFrom(pdev->fd, cpe->bufs, cpe->bufcnt, &recvbytes, &cpe->flags,
                       (struct sockaddr *)&pdev->sock, &pdev->socklen,
-                      &cpe->ovlap, NULL);
+                      &cpe->ovlap, NULL); //(LPWSAOVERLAPPED_COMPLETION_ROUTINE)recvfrom_cb);
     if (ret == SOCKET_ERROR) {
         err = WSAGetLastError();
         if (err != WSA_IO_PENDING) {
@@ -266,7 +295,7 @@ void * iocp_event_send_post (void * vdev, void * chunk, int64 pos, int httpchunk
 
     cpe->evtype = IOE_WRITE;
     cpe->fd = pdev->fd;
-     cpe->devid = pdev->id;
+    cpe->devid = pdev->id;
     cpe->state = IOCP_WRITE_IN_PROGRESS;
 
     if (chunk) {
@@ -366,7 +395,6 @@ void * iocp_event_connect_post (void * vdev, char * host, int port, char * lip, 
     }
  
     for (rp = result; rp != NULL; rp = rp->ai_next) {
-        //confd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         confd = WSASocket(rp->ai_family, rp->ai_socktype, rp->ai_protocol,
                           NULL, 0, WSA_FLAG_OVERLAPPED);
         if (confd == INVALID_SOCKET)
@@ -653,7 +681,8 @@ int epump_iocp_setpoll (void * vepump, void * vpdev)
     hiocp = CreateIoCompletionPort((HANDLE)pdev->fd, pcore->iocp_port, (ULONG_PTR)pdev, 0);
     if (hiocp == NULL) {
         err = GetLastError();
-        tolog(1, "epump_iocp_setpoll: CreateIoCompletionPort failed for fd=%d pdev->id=%d error=%d\n", pdev->fd, pdev->id, err);
+        tolog(1, "epump_iocp_setpoll: CreateIoCompletionPort failed for fd=%d pdev->id=%d error=%d\n",
+              pdev->fd, pdev->id, err);
         return -100;
     }
 
@@ -668,7 +697,6 @@ int epump_iocp_setpoll (void * vepump, void * vpdev)
     return 0;
 }
 
-
 int epump_iocp_clearpoll (void * vepump, void * vpdev)
 {
     iodev_t   * pdev = (iodev_t *)vpdev;
@@ -682,8 +710,6 @@ int epump_iocp_clearpoll (void * vepump, void * vpdev)
 
     return 0;
 }
-
-
 
 int epump_iocp_dispatch (void * veps, btime_t * delay)
 {

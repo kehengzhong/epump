@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
- * All rights reserved.
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
+ * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #ifdef UNIX
@@ -13,8 +37,8 @@
 #include "iodev.h"
 
 
-void * epusock_connect (void * vpcore, char * sockname, void * para,
-                        int * retval, IOHandler * ioh, void * iohpara)
+void * epusock_connect (void * vpcore, char * sockname, void * para, IOHandler * ioh,
+                        void * iohpara, ulong threadid, int * retval)
 {
     epcore_t * pcore = (epcore_t *)vpcore;
     iodev_t  * pdev = NULL;
@@ -42,10 +66,12 @@ void * epusock_connect (void * vpcore, char * sockname, void * para,
         return NULL;
     }
  
-    /* indicates the current worker thread will handle the upcoming read/write event */
-    if (pcore->dispmode == 1)
+    /* indicates which worker thread will handle the upcoming read/write event */
+    if (threadid > 0)
+        pdev->threadid = threadid;
+    else
         pdev->threadid = get_threadid();
- 
+
     if (succ > 0) { /* connect successfully */
         pdev->iostate = IOS_READWRITE;
         if (retval) *retval = 0;
@@ -60,14 +86,14 @@ void * epusock_connect (void * vpcore, char * sockname, void * para,
     }
  
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, BIND_CURRENT_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_GIVEN_EPUMP, pdev->threadid, 0);
  
     return pdev;
 }
  
  
-void * epusock_listen (void * vpcore, char * sockname, void * para, int * retval,
-                       IOHandler * cb, void * cbpara)
+void * epusock_listen (void * vpcore, char * sockname, void * para,
+                       IOHandler * cb, void * cbpara, int * retval)
 {
     epcore_t * pcore = (epcore_t *)vpcore;
     iodev_t  * pdev = NULL;
@@ -100,15 +126,15 @@ void * epusock_listen (void * vpcore, char * sockname, void * para, int * retval
     iodev_rwflag_set(pdev, RWF_READ);
  
     /* all epump threads will be monitoring Listen FD */
-    iodev_bind_epump(pdev, BIND_ALL_EPUMP, NULL);
+    iodev_bind_epump(pdev, BIND_ALL_EPUMP, 0, 0);
 
     if (retval) *retval = 0;
     return pdev;
 }
  
  
-void * epusock_accept (void * vpcore, void * vld, void * para, int * retval,
-                       IOHandler * cb, void * cbpara, int bindtype)
+void * epusock_accept (void * vpcore, void * vld, void * para, IOHandler * cb,
+                       void * cbpara, int bindtype, ulong threadid, int * retval)
 {
     epcore_t * pcore = (epcore_t *)vpcore;
     iodev_t  * listendev = (iodev_t *)vld;
@@ -134,8 +160,10 @@ void * epusock_accept (void * vpcore, void * vld, void * para, int * retval,
         return NULL;
     }
  
-    /* indicates the current worker thread will handle the upcoming read/write event */
-    if (pcore->dispmode == 1)
+    /* indicates which worker thread will handle the upcoming read/write event */
+    if (threadid > 0)
+        pdev->threadid = threadid;
+    else
         pdev->threadid = get_threadid();
 
     pdev->fd = clifd;
@@ -154,7 +182,7 @@ void * epusock_accept (void * vpcore, void * vld, void * para, int * retval,
     if (retval) *retval = 0;
 
     /* epump is system-decided: select one lowest load epump thread to be bound */
-    iodev_bind_epump(pdev, bindtype, NULL);
+    iodev_bind_epump(pdev, bindtype, pdev->threadid, 0);
  
     return pdev;
 }

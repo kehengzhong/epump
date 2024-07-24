@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
  
 #include "btype.h"
@@ -9,6 +33,7 @@
 #include "bpool.h"
 #include "memory.h"
 #include "rbtree.h"
+#include "trace.h"
  
 #include "epcore.h"
 #include "epump_local.h"
@@ -37,7 +62,7 @@ void * epump_new (epcore_t * pcore)
 {
     epump_t * epump = NULL;
  
-    epump = bpool_fetch(pcore->epump_pool);
+    epump = mpool_fetch(pcore->epump_pool);
     if (!epump) return NULL;
  
     epump->epcore = pcore;
@@ -48,7 +73,7 @@ void * epump_new (epcore_t * pcore)
  
 #ifdef HAVE_EPOLL
     if (epump_epoll_init(epump, pcore->maxfd) < 0) {
-        kfree(epump);
+        mpool_recycle(pcore->epump_pool, epump);
         return NULL;
     }
     epump->setpoll = epump_epoll_setpoll;
@@ -57,7 +82,7 @@ void * epump_new (epcore_t * pcore)
  
 #elif defined(HAVE_KQUEUE)
     if (epump_kqueue_init(epump, pcore->maxfd) < 0) {
-        kfree(epump);
+        mpool_recycle(pcore->epump_pool, epump);
         return NULL;
     }
     epump->setpoll = epump_kqueue_setpoll;
@@ -66,7 +91,7 @@ void * epump_new (epcore_t * pcore)
  
 #elif defined(HAVE_IOCP)
     if (epump_iocp_init(epump, pcore->maxfd) < 0) {
-        kfree(epump);
+        mpool_recycle(pcore->epump_pool, epump);
         return NULL;
     }
     epump->setpoll = epump_iocp_setpoll;
@@ -75,7 +100,7 @@ void * epump_new (epcore_t * pcore)
 
 #elif defined(HAVE_SELECT)
     if (epump_select_init(epump) < 0) {
-        kfree(epump);
+        mpool_recycle(pcore->epump_pool, epump);
         return NULL;
     }
     epump->setpoll = epump_select_setpoll;
@@ -83,15 +108,20 @@ void * epump_new (epcore_t * pcore)
     epump->fddispatch = epump_select_dispatch;
 #endif
  
-    /* initialization of IODevice operation & management */
+    epump->epumpsleep = 0;
+
+    /* A device such as listen device, may be associated with multiple ePump threads,
+       so a device object may be added to the RBTree in multiple ePumps. Therefore,
+       the device_tree in ePump must set alloc_node parameter to 1 when it is created,
+       and the memory at the beginning of iodev_t cannot be reused as the RBTree node pointer. */
     InitializeCriticalSection(&epump->devicetreeCS);
     if (epump->device_tree == NULL)
-        epump->device_tree = rbtree_new(iodev_cmp_fd, 1);
+        epump->device_tree = rbtree_alloc(iodev_cmp_fd, 1, 0, NULL, pcore->devrbn_pool);
  
     /* initialization of IOTimer operation & management */
     InitializeCriticalSection(&epump->timertreeCS);
     if (epump->timer_tree == NULL)
-        epump->timer_tree = rbtree_new(iotimer_cmp_iotimer, 0);
+        epump->timer_tree = rbtree_alloc(iotimer_cmp_iotimer, 1, 0, NULL, pcore->timrbn_pool);
  
     /* initialization of ioevent_t operation & management */
     InitializeCriticalSection(&epump->ioeventlistCS);
@@ -103,52 +133,71 @@ void * epump_new (epcore_t * pcore)
         epump->exteventlist = arr_new(16);
     epump->exteventindex = 0;
  
-    /* wake up the epoll_wait while waiting in block for the fd-set ready */
-    epump_wakeup_init(epump);
- 
     return epump;
 }
  
+int epcore_epump_free (void * vepump)
+{
+    epump_t   * epump = (epump_t *)vepump;
+    epcore_t  * pcore = NULL;
+
+    if (!epump) return -1;
+
+    pcore = epump->epcore;
+    if (!pcore) return -2;
+
+    if (epump_free(epump) == 0)
+        mpool_recycle(pcore->epump_pool, epump);
+
+    return 0;
+}
  
-void epump_free (void * vepump)
+int epump_free (void * vepump)
 {
     epump_t   * epump = (epump_t *)vepump;
     ioevent_t * ioe = NULL;
  
-    if (!epump) return;
+    if (!epump) return -1;
  
     epump_wakeup_clean(epump);
  
     /* clean the IODevice facilities */
     DeleteCriticalSection(&epump->devicetreeCS);
  
-    rbtree_free(epump->device_tree);
-    epump->device_tree = NULL;
+    if (epump->device_tree) {
+        rbtree_free(epump->device_tree);
+        epump->device_tree = NULL;
+    }
  
-    /* clean the IOTimer facilities */
-    DeleteCriticalSection(&epump->timertreeCS);
-    rbtree_free(epump->timer_tree);
-    epump->timer_tree = NULL;
- 
+    if (epump->timer_tree) {
+        /* clean the IOTimer facilities */
+        DeleteCriticalSection(&epump->timertreeCS);
+        rbtree_free(epump->timer_tree);
+        epump->timer_tree = NULL;
+    }
  
     /* clean the ioevent_t facilities */
-    EnterCriticalSection(&epump->ioeventlistCS);
-    while ((ioe = lt_rm_head(epump->ioevent_list)) != NULL) {
-        ioevent_free(ioe);
+    if (epump->ioevent_list) {
+        EnterCriticalSection(&epump->ioeventlistCS);
+        while ((ioe = lt_rm_head(epump->ioevent_list)) != NULL) {
+            ioevent_free(ioe);
+        }
+        lt_free(epump->ioevent_list);
+        epump->ioevent_list = NULL;
+        LeaveCriticalSection(&epump->ioeventlistCS);
     }
-    lt_free(epump->ioevent_list);
-    epump->ioevent_list = NULL;
-    LeaveCriticalSection(&epump->ioeventlistCS);
  
     DeleteCriticalSection(&epump->ioeventlistCS);
  
     /* clean external events */
-    DeleteCriticalSection(&epump->exteventlistCS);
-    while (arr_num(epump->exteventlist) > 0) {
-        ioevent_free(arr_pop(epump->exteventlist));
+    if (epump->exteventlist) {
+        DeleteCriticalSection(&epump->exteventlistCS);
+        while (arr_num(epump->exteventlist) > 0) {
+            ioevent_free(arr_pop(epump->exteventlist));
+        }
+        arr_free(epump->exteventlist);
+        epump->exteventlist = NULL;
     }
-    arr_free(epump->exteventlist);
-    epump->exteventlist = NULL;
  
 #ifdef HAVE_EPOLL
     epump_epoll_clean(epump);
@@ -160,7 +209,7 @@ void epump_free (void * vepump)
     epump_select_clean(epump);
 #endif
  
-    kfree(epump);
+    return 0;
 }
  
 int epump_init (void * vepump)
@@ -178,7 +227,6 @@ void epump_recycle (void * vepump)
 {
     epump_t   * epump = (epump_t *)vepump;
     epcore_t  * pcore = NULL;
-    ioevent_t * ioe = NULL;
  
     if (!epump) return;
  
@@ -189,39 +237,8 @@ void epump_recycle (void * vepump)
     }
  
     epump->quit = 1;
-    epump->threadid = 0;
 
-    epump_wakeup_clean(epump);
-
-    /* clean the IODevice facilities */
-    rbtree_zero(epump->device_tree);
- 
-    /* clean the IOTimer facilities */
-    rbtree_zero(epump->timer_tree);
- 
-    /* clean the ioevent_t facilities */
-    EnterCriticalSection(&epump->ioeventlistCS);
-    while ((ioe = lt_rm_head(epump->ioevent_list)) != NULL) {
-        ioevent_free(ioe);
-    }
-    LeaveCriticalSection(&epump->ioeventlistCS);
- 
-    /* clean external events */
-    while (arr_num(epump->exteventlist) > 0) {
-        ioevent_free(arr_pop(epump->exteventlist));
-    }
- 
-#ifdef HAVE_EPOLL
-    epump_epoll_clean(epump);
-#elif defined(HAVE_KQUEUE)
-    epump_kqueue_clean(epump);
-#elif defined(HAVE_IOCP)
-    epump_iocp_clean(epump);
-#elif defined(HAVE_SELECT)
-    epump_select_clean(epump);
-#endif
- 
-    bpool_recycle(pcore->epump_pool, epump);
+    mpool_recycle(pcore->epump_pool, epump);
 }
  
  
@@ -268,7 +285,7 @@ int epump_hook_register (void * vepump, void * ignitor, void * igpara,
     }
     if (type >= 65535) return -100;
  
-    ioe = (ioevent_t *)bpool_fetch(epump->epcore->event_pool);
+    ioe = (ioevent_t *)mpool_fetch(epump->epcore->event_pool);
     if (!ioe) return -10;
  
     ioe->externflag = 1;
@@ -297,7 +314,7 @@ int epump_hook_remove (void * vepump, void * ignitor, void * igpara,
  
     EnterCriticalSection(&epump->exteventlistCS);
     num = arr_num(epump->exteventlist);
-    for (i=0; i<num; i++) {
+    for (i = 0; i < num; i++) {
         ioe = arr_value(epump->exteventlist, i);
         if (!ioe || ioe->externflag != 1) continue;
         if (ioe->ignitor == ignitor && ioe->igpara == igpara && 
@@ -311,7 +328,10 @@ int epump_hook_remove (void * vepump, void * ignitor, void * igpara,
     }
     LeaveCriticalSection(&epump->exteventlistCS);
  
-    if (found && ioe) bpool_recycle(epump->epcore->event_pool, ioe);
+    if (found && ioe) {
+        mpool_recycle(epump->epcore->event_pool, ioe);
+    }
+
     return found;
 }
  
@@ -398,22 +418,42 @@ int epump_iodev_add (void * veps, void * vpdev)
     if (!epump || !pdev) return -1;
  
     if (pdev->fd == INVALID_SOCKET) return -2;
+
+    if (epcore_iodev_find(epump->epcore, pdev->id) != pdev) {
+        tolog(1, "DevAdd: [%lu %d %s %d %d] Dev=%d/%d DPool=%d/%d Timer=%d/%d TPool=%d/%d ePump=%lu\n",
+              pdev->id, pdev->fd, pdev->remote_ip, pdev->fdtype, pdev->bindtype,
+              rbtree_num(epump->device_tree), ht_num(epump->epcore->device_table),
+              mpool_allocated(epump->epcore->device_pool), mpool_consumed(epump->epcore->device_pool),
+              rbtree_num(epump->timer_tree), ht_num(epump->epcore->timer_table),
+              mpool_allocated(epump->epcore->timer_pool), mpool_consumed(epump->epcore->timer_pool),
+              epump->threadid);
+        return -3;
+    }
  
     EnterCriticalSection(&epump->devicetreeCS);
  
-    obj = rbtree_get(epump->device_tree, &pdev->fd);
+    obj = rbtree_get(epump->device_tree, (void *)(long)pdev->fd);
     if (obj != pdev) {
  
         if (obj != NULL) {
-            rbtree_delete(epump->device_tree, &pdev->fd);
+            if (rbtree_delete(epump->device_tree, (void *)(long)pdev->fd) != NULL) {
+                tolog(1, "Panic: multi-dev on fd=%d when adddev[%lu %s:%d type:%d bind:%d] "
+                         "dupdev[%lu %s:%d %d %d], epump[%lu] epmfd=%d, epcofd=%d\n",
+                      pdev->fd, pdev->id, pdev->remote_ip, pdev->remote_port, pdev->fdtype,
+                      pdev->bindtype, obj->id, obj->remote_ip, obj->remote_port, obj->fdtype, obj->bindtype,
+                      epump->threadid, rbtree_num(epump->device_tree), ht_num(epump->epcore->device_table));
+            }
         }
  
-        rbtree_insert(epump->device_tree, &pdev->fd, pdev, NULL);
+        rbtree_insert(epump->device_tree, (void *)(long)pdev->fd, pdev, NULL);
     }
  
     LeaveCriticalSection(&epump->devicetreeCS);
  
-    if (obj) iodev_close(obj);
+    if (obj && obj != pdev) {
+        obj->fd = INVALID_SOCKET;
+        iodev_close(obj);
+    }
 
     return 0;
 #endif
@@ -426,11 +466,13 @@ void * epump_iodev_del (void * veps, SOCKET fd)
  
     if (!epump) return NULL;
  
-    if (fd == INVALID_SOCKET) return NULL;
- 
     EnterCriticalSection(&epump->devicetreeCS);
  
-    pdev = rbtree_delete(epump->device_tree, &fd);
+    pdev = rbtree_delete(epump->device_tree, (void *)(long)fd);
+    if (!pdev) {
+        LeaveCriticalSection(&epump->devicetreeCS);
+        return NULL;
+    }
  
     LeaveCriticalSection(&epump->devicetreeCS);
  
@@ -447,7 +489,7 @@ void * epump_iodev_find (void * vepump, SOCKET fd)
  
     EnterCriticalSection(&epump->devicetreeCS);
  
-    pdev = rbtree_get(epump->device_tree, &fd);
+    pdev = rbtree_get(epump->device_tree, (void *)(long)fd);
  
     LeaveCriticalSection(&epump->devicetreeCS);
  
@@ -482,6 +524,39 @@ int epump_iodev_tcpnum (void * vepump)
     return retval;
 }
  
+void epump_iodev_print (void * vepump, int printtype)
+{
+    epump_t   * epump = (epump_t *) vepump;
+    iodev_t   * pdev = NULL;
+    int         i, num, iter = 0;
+    rbtnode_t * rbtn = NULL;
+    char        buf[32768];
+ 
+    if (!epump) return;
+ 
+    EnterCriticalSection(&epump->devicetreeCS);
+ 
+    rbtn = rbtree_min_node(epump->device_tree);
+    num = rbtree_num(epump->device_tree);
+ 
+    sprintf(buf, " ePump:%lu FDnum=%d:", epump->threadid, num);
+    iter = strlen(buf);
+ 
+    for (i = 0; i < num && rbtn; i++) {
+        pdev = RBTObj(rbtn);
+        rbtn = rbtnode_next(rbtn);
+ 
+        if (!pdev) continue;
+ 
+        sprintf(buf+iter, "%s %d/%lu", (i%8)==0?"\n":"", pdev->fd, pdev->id);
+        iter = strlen(buf);
+        if (iter > sizeof(buf) - 16) break;
+    }
+    if (printtype == 0) printf("%s\n", buf);
+    else if (printtype == 1) tolog(1, "%s\n", buf);
+ 
+    LeaveCriticalSection(&epump->devicetreeCS);
+}
  
 SOCKET epump_iodev_maxfd (void * vepump)
 {
@@ -599,11 +674,13 @@ int epump_main_proc (void * veps)
     if (!epump) return -1;
  
     pcore = (epcore_t *)epump->epcore;
-    if (!pcore) goto end_epump;
+    if (!pcore) return -2;
  
     epump->threadid = get_threadid();
- 
     epump_thread_add(pcore, epump);
+ 
+    /* wake up the epoll_wait while waiting in block for the fd-set ready */
+    epump_wakeup_init(epump);
  
     /* now append the global fd's in epcore to current epoll-fd monitoring list */
     epcore_global_iodev_getmon(pcore, epump);
@@ -613,27 +690,30 @@ int epump_main_proc (void * veps)
     epcore_mlisten_create(pcore, epump);
  
     while (pcore->quit == 0 && epump->quit == 0) {
+
+        if (lt_num(epump->ioevent_list) > 0)
+            ioevent_handle(epump);
  
-        /* check timer list whether timeout events occur */
-        ret = iotimer_check_timeout(epump, &diff, &evnum);
+        do {
+            ret = iotimer_check_timeout(epump, &diff, &evnum);
  
-        /* handle all events in event queue via invoking their callback */
-        ioevent_handle(epump);
+            if (evnum > 0)
+                ioevent_handle(epump);
+        } while (evnum > 0);
  
         if (pcore->quit || epump->quit)
             break;
  
         /* waiting for the readiness notification from the monitored fd-list */
-        if (ret <= 0) pdiff = NULL;
+        if (ret < 0) pdiff = NULL;
         else pdiff = &diff;
+
+        epump->epumpsleep = 1;
         (*epump->fddispatch)(epump, pdiff);
+        epump->epumpsleep = 0;
     }
  
     epump->quit = 1;
- 
-end_epump:
-    epump_thread_del(pcore, epump);
-    epump_recycle(epump);
  
     return 0;
 }
@@ -707,7 +787,6 @@ int epump_main_start (void * vpcore, int forkone)
     } while (ret != 0);
  
     pthread_detach(thid);
-    //pthread_join(thid, NULL);
 #endif
  
     return 0;

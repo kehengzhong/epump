@@ -1,12 +1,37 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #include "btype.h"
 #include "memory.h"
 #include "dynarr.h"
 #include "tsock.h"
+#include "trace.h"
 
 #include "epcore.h"
 #include "epump_local.h"
@@ -20,7 +45,7 @@
 #endif
 
 
-void * mlisten_alloc (char * localip, int port, int fdtype, void * para, IOHandler * cb, void * cbpara)
+void * mlisten_alloc (char * localip, int port, int fdtype, void * popt, void * para, IOHandler * cb, void * cbpara)
 {
     mlisten_t * mln = NULL;
 
@@ -33,6 +58,7 @@ void * mlisten_alloc (char * localip, int port, int fdtype, void * para, IOHandl
     mln->port = port;
     mln->reuseport = 0;
 
+    mln->popt = popt;
     mln->para = para;
     mln->cb = cb;
     mln->cbpara = cbpara;
@@ -49,7 +75,10 @@ void mlisten_free (void * vmln)
 
     if (!mln) return;
 
-    arr_pop_free(mln->devlist, iodev_close);
+    if (mln->devlist) {
+        arr_pop_free(mln->devlist, iodev_closeit);
+        mln->devlist = NULL;
+    }
 
     kfree(mln);
 }
@@ -89,7 +118,10 @@ int epcore_mlisten_clean (void * epcore)
 
     if (!pcore) return -1;
 
-    arr_pop_free(pcore->glbmlisten_list, mlisten_free);
+    while (arr_num(pcore->glbmlisten_list) > 0)
+        mlisten_close(arr_pop(pcore->glbmlisten_list));
+    arr_free(pcore->glbmlisten_list);
+
     pcore->glbmlisten_list = NULL;
 
     DeleteCriticalSection(&pcore->glbmlistenlistCS);
@@ -185,7 +217,7 @@ int epcore_mlisten_create (void * epcore, void * vepump)
     iodev_t    * devlist[16];
     int          devnum = 16;
     int          iter = 0;
-    int          i, num;
+    int          i, num, mlndevs = 0;
     int          ret = 0;
  
     if (!pcore) return -1;
@@ -209,9 +241,10 @@ int epcore_mlisten_create (void * epcore, void * vepump)
 
         if (mln->fdtype == FDT_LISTEN) {
             if (mln->reuseport || pdev == NULL) {
+                mlndevs = arr_num(mln->devlist);
                 devnum = 16;
-                eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                     &ret, mln->cb, mln->cbpara, devlist, &devnum);
+                eptcp_listen_create (pcore, mln->localip, mln->port, mln->popt, mln->para,
+                                     mln->cb, mln->cbpara, devlist, &devnum, &ret);
                 for (iter = 0; iter < devnum; iter++) {
                     pdev = devlist[iter];
                     if (pdev && pdev->reuseport)
@@ -222,9 +255,10 @@ int epcore_mlisten_create (void * epcore, void * vepump)
             }
         } else if (mln->fdtype == FDT_UDPSRV) {
             if (mln->reuseport || pdev == NULL) {
+                mlndevs = arr_num(mln->devlist);
                 devnum = 16;
-                epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                     &ret, mln->cb, mln->cbpara, devlist, &devnum);
+                epudp_listen_create (pcore, mln->localip, mln->port, mln->popt, mln->para,
+                                     mln->cb, mln->cbpara, devlist, &devnum, &ret);
                 for (iter = 0; iter < devnum; iter++) {
                     pdev = devlist[iter];
                     if (pdev && pdev->reuseport)
@@ -235,16 +269,28 @@ int epcore_mlisten_create (void * epcore, void * vepump)
             }
         }
 
-        for (iter = 0; iter < arr_num(mln->devlist); iter++) {
+        for (iter = mlndevs; iter < arr_num(mln->devlist); iter++) {
             pdev = arr_value(mln->devlist, iter);
+            if (!pdev) continue;
 
             pdev->bindtype = BIND_NEW_FOR_EPUMP; //4
             pdev->epump = epump;
  
             epump_iodev_add(epump, pdev);
  
-            if (epump->setpoll)
-                (*epump->setpoll)(epump, pdev);
+            if (epump->setpoll) {
+                ret = -12;
+                ret = (*epump->setpoll)(epump, pdev);
+            }
+
+            tolog(1, "glbMListen[%d/%d]: mln[%s:%d Reuse:%d fdtype:%d] Dev[%d/%d/%d: "
+                     "%s %d %lu/%d bindtype=%d thid=%lu] "
+                     "ePump[eplfd:%d %lu DevN:%d TimerN=%d ioeN=%d] ret:%d\n",
+                  i, num, mln->localip, mln->port, mln->reuseport, mln->fdtype, iter,
+                  arr_num(mln->devlist), devnum, pdev->local_ip, pdev->local_port,
+                  pdev->id, pdev->fd, pdev->bindtype, pdev->threadid,
+                  epump->epoll_fd, epump->threadid, rbtree_num(epump->device_tree),
+                  rbtree_num(epump->timer_tree), lt_num(epump->ioevent_list), ret);
         }
     }
  
@@ -256,7 +302,7 @@ int epcore_mlisten_create (void * epcore, void * vepump)
  
  
 void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
-                     void * para, IOHandler * cb, void * cbpara)
+                     void * popt, void * para, IOHandler * cb, void * cbpara)
 {
 #ifdef HAVE_IOCP
     epcore_t   * pcore = (epcore_t *)epcore;
@@ -272,7 +318,7 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
  
     mln = epcore_mlisten_get(pcore, localip, port, fdtype);
     if (!mln) {
-        mln = mlisten_alloc(localip, port, fdtype, para, cb, cbpara);
+        mln = mlisten_alloc(localip, port, fdtype, popt, para, cb, cbpara);
         if (mln)
             epcore_mlisten_add(pcore, mln);
     }
@@ -280,11 +326,11 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
 
     devnum = 16; 
     if (mln->fdtype == FDT_LISTEN) {
-        eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                             &ret, mln->cb, mln->cbpara, devlist, &devnum);
+        eptcp_listen_create (pcore, mln->localip, mln->port, mln->popt, mln->para,
+                             mln->cb, mln->cbpara, devlist, &devnum, &ret);
     } else if (mln->fdtype == FDT_UDPSRV) {
-        epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                             &ret, mln->cb, mln->cbpara, devlist, &devnum);
+        epudp_listen_create (pcore, mln->localip, mln->port, mln->popt, mln->para,
+                             mln->cb, mln->cbpara, devlist, &devnum, &ret);
     } else {
         return NULL;
     }
@@ -328,7 +374,7 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
     int          devnum = 16;
     int          iter = 0;
     int          ret = 0;
-    int          i, num;
+    int          i, num, mlndevs = 0;
     epump_t    * epump = NULL;
  
     if (!pcore) return NULL;
@@ -336,7 +382,7 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
  
     mln = epcore_mlisten_get(pcore, localip, port, fdtype);
     if (!mln) {
-        mln = mlisten_alloc(localip, port, fdtype, para, cb, cbpara);
+        mln = mlisten_alloc(localip, port, fdtype, popt, para, cb, cbpara);
         if (mln)
             epcore_mlisten_add(pcore, mln);
     }
@@ -360,9 +406,10 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
  
         if (mln->fdtype == FDT_LISTEN) {
             if (mln->reuseport || pdev == NULL) {
+                mlndevs = arr_num(mln->devlist);
                 devnum = 16;
-                eptcp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                     &ret, mln->cb, mln->cbpara, devlist, &devnum);
+                eptcp_listen_create (pcore, mln->localip, mln->port, mln->popt, mln->para,
+                                     mln->cb, mln->cbpara, devlist, &devnum, &ret);
                 for (iter = 0; iter < devnum; iter++) {
                     pdev = devlist[iter];
                     if (!pdev) continue;
@@ -375,9 +422,10 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
 
         } else if (mln->fdtype == FDT_UDPSRV) {
             if (mln->reuseport || pdev == NULL) {
+                mlndevs = arr_num(mln->devlist);
                 devnum = 16;
-                epudp_listen_create (pcore, mln->localip, mln->port, mln->para,
-                                     &ret, mln->cb, mln->cbpara, devlist, &devnum);
+                epudp_listen_create (pcore, mln->localip, mln->port, mln->popt, mln->para,
+                                     mln->cb, mln->cbpara, devlist, &devnum, &ret);
                 for (iter = 0; iter < devnum; iter++) {
                     pdev = devlist[iter];
                     if (!pdev) continue;
@@ -389,14 +437,21 @@ void * mlisten_open (void * epcore,  char * localip, int port, int fdtype,
             }
         }
 
-        for (iter = 0; iter < arr_num(mln->devlist); iter++) {
+        for (iter = mlndevs; iter < arr_num(mln->devlist); iter++) {
             pdev = arr_value(mln->devlist, iter);
+            if (!pdev) continue;
 
             pdev->bindtype = BIND_NEW_FOR_EPUMP; //4
             pdev->epump = epump;
  
             epump_iodev_add(epump, pdev);
-            (*epump->setpoll)(epump, pdev);
+            ret = (*epump->setpoll)(epump, pdev);
+
+            tolog(1, "MListenOpen: id=%lu fd=%d fdtype=%d lport=%d bindtype=%d threadid=%lu "
+                     "BindTo epump: eplfd=%d threadid=%lu devnum=%d timernum=%d ioenum=%d, ret=%d\n",
+                  pdev->id, pdev->fd, pdev->fdtype, pdev->local_port, pdev->bindtype, pdev->threadid,
+                  epump->epoll_fd, epump->threadid, rbtree_num(epump->device_tree),
+                  rbtree_num(epump->timer_tree), lt_num(epump->ioevent_list), ret);
         }
     }
  
@@ -410,6 +465,9 @@ int mlisten_close (void * vmln)
 {
     mlisten_t * mln = (mlisten_t *)vmln;
     epcore_t  * pcore = NULL;
+    int         i, num, iter;
+    epump_t   * epump = NULL;
+    iodev_t   * pdev = NULL;
 
     if (!mln) return -1;
 
@@ -418,6 +476,34 @@ int mlisten_close (void * vmln)
 
     if (epcore_mlisten_del(pcore, mln) == NULL)
         return 0;
+
+    /* unbind the devices from every epump */
+    EnterCriticalSection(&pcore->epumplistCS);
+ 
+    num = arr_num(pcore->epump_list);
+    for (i = 0; i < num; i++) {
+ 
+        epump = arr_value(pcore->epump_list, i);
+        if (!epump) continue;
+ 
+        for (iter = 0; iter < arr_num(mln->devlist); iter++) {
+            pdev = arr_value(mln->devlist, iter);
+            if (!pdev) continue;
+
+            pdev->epump = NULL;
+
+            if (epump_iodev_del(epump, pdev->fd) == NULL) {
+                tolog(1, "Warning: MListenClose %llu/%d MLN[%s:%d reuse:%d %d] [%lu %d %s %d %d] DevNum:%d/%d\n",
+                      epump->threadid, num, mln->localip, mln->port, mln->reuseport, arr_num(mln->devlist),
+                      pdev->id, pdev->fd, pdev->remote_ip, pdev->fdtype, pdev->bindtype,
+                      rbtree_num(epump->device_tree), ht_num(pcore->device_table));
+            }
+
+            (*epump->delpoll)(epump, pdev);
+        }
+    }
+
+    LeaveCriticalSection(&pcore->epumplistCS);
 
     mlisten_free(mln);
 

@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
  
 #include "epcore.h"
@@ -28,7 +52,7 @@ int epcore_wakeup_init (void * vpcore)
     sock_nonblock_set(pcore->wakeupfd, 1);
     pcore->wakeupdev = pdev = iodev_new_from_fd(pcore, pcore->wakeupfd, FDT_FILEDEV, NULL, NULL, NULL);
 
-    iodev_bind_epump(pcore->wakeupdev, BIND_ALL_EPUMP, NULL);
+    iodev_bind_epump(pcore->wakeupdev, BIND_ALL_EPUMP, 0, 0);
     return 0;
 
 #elif defined(WAKE_BY_UDP)
@@ -58,7 +82,7 @@ int epcore_wakeup_init (void * vpcore)
 
     pcore->wakeupdev = pdev = iodev_new_from_fd(pcore, pcore->wakeupfd, FDT_UDPSRV, NULL, NULL, NULL);
 
-    iodev_bind_epump(pcore->wakeupdev, BIND_ALL_EPUMP, NULL);
+    iodev_bind_epump(pcore->wakeupdev, BIND_ALL_EPUMP, 0, 0);
     return 0;
 
 #else
@@ -68,7 +92,6 @@ int epcore_wakeup_init (void * vpcore)
 
     if (!pcore) return -1;
 
-    //if (pipe_create(fds) < 0)
     if (sock_pair_create(SOCK_STREAM, fds) < 0)
         return -2;
 
@@ -80,7 +103,7 @@ int epcore_wakeup_init (void * vpcore)
 
     pcore->wakeupdev = pdev = iodev_new_from_fd(pcore, pcore->wakeupfd, FDT_CONNECTED, NULL, NULL, NULL);
 
-    iodev_bind_epump(pcore->wakeupdev, BIND_ALL_EPUMP, NULL);
+    iodev_bind_epump(pcore->wakeupdev, BIND_ALL_EPUMP, 0, 0);
     return 0;
 #endif
 }
@@ -262,7 +285,7 @@ int epump_wakeup_init (void * vepump)
     sock_nonblock_set(epump->wakeupfd, 1);
     epump->wakeupdev = pdev = iodev_new_from_fd(epump->epcore, epump->wakeupfd, FDT_FILEDEV, NULL, NULL, NULL);
  
-    iodev_bind_epump(epump->wakeupdev, BIND_GIVEN_EPUMP, epump);
+    iodev_bind_epump(epump->wakeupdev, BIND_GIVEN_EPUMP, epump->threadid, 0);
     return 0;
 
 #else
@@ -300,6 +323,8 @@ int epump_wakeup_send (void * vepump)
  
     if (!epump) return -1;
  
+    if (!epump->epumpsleep) return 1;
+
     return epcore_wakeup_send(epump->epcore);
 
 #elif defined(HAVE_EVENTFD)
@@ -308,6 +333,8 @@ int epump_wakeup_send (void * vepump)
  
     if (!epump) return -1;
  
+    if (!epump->epumpsleep) return 1;
+
     write(epump->wakeupfd, &val, sizeof(val));
  
     return 0;
@@ -317,6 +344,8 @@ int epump_wakeup_send (void * vepump)
  
     if (!epump) return -1;
  
+    if (!epump->epumpsleep) return 1;
+
     return epcore_wakeup_send(epump->epcore);
 #endif
 }

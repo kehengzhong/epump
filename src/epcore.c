@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #include "btype.h"
@@ -11,6 +35,8 @@
 #include "memory.h"
 #include "bpool.h"
 #include "tsock.h"
+#include "kemalloc.h"
+#include "trace.h"
 
 #include "epcore.h"
 #include "epump_local.h"
@@ -54,6 +80,8 @@ static int set_fd_limit(int max)
       return -100;
     }
 
+    tolog(1, "FD-Max: %d set successfully!\n", max);
+
      return 0;
 }
 #else
@@ -64,7 +92,7 @@ static int set_fd_limit(int max)
 #endif
 
 
-void * epcore_new (int maxfd, int dispmode)
+void * epcore_new (int maxfd)
 {
     epcore_t * pcore = NULL;
 #if defined(_WIN32) || defined(_WIN64)
@@ -80,11 +108,9 @@ void * epcore_new (int maxfd, int dispmode)
     pcore = kzalloc(sizeof(*pcore));
     if (!pcore) return NULL;
 
-    if (maxfd <= 1024) maxfd = 65535 * 8;
+    if (maxfd <= 1024) maxfd = 65536;
     pcore->maxfd = maxfd;
     set_fd_limit(maxfd);
-
-    pcore->dispmode = dispmode;
 
     time(&pcore->startup_time);
     pcore->quit = 0;
@@ -104,43 +130,56 @@ void * epcore_new (int maxfd, int dispmode)
 
     /* initialize memory pool resource */
     if (!pcore->device_pool) {
-        pcore->device_pool = bpool_init(NULL);
-        bpool_set_initfunc(pcore->device_pool, iodev_init);
-        bpool_set_freefunc(pcore->device_pool, iodev_free);
-        bpool_set_unitsize(pcore->device_pool, sizeof(iodev_t));
-        bpool_set_allocnum(pcore->device_pool, 256);
+        pcore->device_pool = mpool_osalloc();
+        mpool_set_initfunc(pcore->device_pool, iodev_init);
+        mpool_set_freefunc(pcore->device_pool, iodev_free);
+        mpool_set_unitsize(pcore->device_pool, sizeof(iodev_t));
+        mpool_set_allocnum(pcore->device_pool, 1024);
     }
 
     if (!pcore->timer_pool) {
-        pcore->timer_pool = bpool_init(NULL);
-        bpool_set_freefunc(pcore->timer_pool, iotimer_free);
-        bpool_set_unitsize(pcore->timer_pool, sizeof(iotimer_t));
-        bpool_set_allocnum(pcore->timer_pool, 256);
+        pcore->timer_pool = mpool_osalloc();
+        mpool_set_initfunc(pcore->timer_pool, iotimer_init);
+        mpool_set_freefunc(pcore->timer_pool, iotimer_free);
+        mpool_set_unitsize(pcore->timer_pool, sizeof(iotimer_t));
+        mpool_set_allocnum(pcore->timer_pool, 1640);
     }
 
     if (!pcore->event_pool) {
-        pcore->event_pool = bpool_init(NULL);
-        bpool_set_freefunc(pcore->event_pool, ioevent_free);
-        bpool_set_unitsize(pcore->event_pool, sizeof(ioevent_t));
-        bpool_set_allocnum(pcore->event_pool, 64);
+        pcore->event_pool = mpool_alloc();
+        mpool_set_freefunc(pcore->event_pool, ioevent_free);
+        mpool_set_unitsize(pcore->event_pool, sizeof(ioevent_t));
+        mpool_set_allocnum(pcore->event_pool, 1264);
     }
 
     if (!pcore->epump_pool) {
-        pcore->epump_pool = bpool_init(NULL);
-        bpool_set_freefunc(pcore->epump_pool, epump_free);
-        bpool_set_unitsize(pcore->epump_pool, sizeof(epump_t));
-        bpool_set_allocnum(pcore->epump_pool, 8);
+        pcore->epump_pool = mpool_alloc();
+        mpool_set_freefunc(pcore->epump_pool, epump_free);
+        mpool_set_unitsize(pcore->epump_pool, sizeof(epump_t));
+        mpool_set_allocnum(pcore->epump_pool, 8);
+    }
+
+    if (!pcore->devrbn_pool) {
+        pcore->devrbn_pool = mpool_alloc();
+        mpool_set_unitsize(pcore->devrbn_pool, sizeof(rbtnode_t));
+        mpool_set_allocnum(pcore->devrbn_pool, 2978);
+    }
+
+    if (!pcore->timrbn_pool) {
+        pcore->timrbn_pool = mpool_alloc();
+        mpool_set_unitsize(pcore->timrbn_pool, sizeof(rbtnode_t));
+        mpool_set_allocnum(pcore->timrbn_pool, 2978);
     }
 
     /* initialization of IODevice operation & management */
     InitializeCriticalSection(&pcore->devicetableCS);
-    pcore->device_table = ht_only_new(300000, iodev_cmp_id);
+    pcore->device_table = ht_only_new(pcore->maxfd, iodev_cmp_id);
     ht_set_hash_func(pcore->device_table, iodev_hash_func);
     pcore->deviceID = 100;
 
     /* initialization of IOTimer operation & management */
     InitializeCriticalSection(&pcore->timertableCS);
-    pcore->timer_table = ht_only_new(300000, iotimer_cmp_id);
+    pcore->timer_table = ht_only_new(pcore->maxfd, iotimer_cmp_id);
     ht_set_hash_func(pcore->timer_table, iotimer_hash_func);
     pcore->timerID = 100;
 
@@ -188,28 +227,9 @@ void epcore_clean (void * vpcore)
 
     epcore_wakeup_clean(pcore);
 
-    /* clean the IODevice facilities */
-    DeleteCriticalSection(&pcore->devicetableCS);
-    ht_free_all(pcore->device_table, iodev_free);
-    pcore->device_table = NULL;
-
-    /* clean the IOTimer facilities */
-    DeleteCriticalSection(&pcore->timertableCS);
-    ht_free_all(pcore->timer_table, iotimer_free);
-    pcore->timer_table = NULL;
-
-    /* free the global iodev, iotimer, listen port list */
-    DeleteCriticalSection(&pcore->glbiodevlistCS);
-    arr_free(pcore->glbiodev_list);
-    pcore->glbiodev_list = NULL;
-
-    DeleteCriticalSection(&pcore->glbiotimerlistCS);
-    arr_free(pcore->glbiotimer_list);
-    pcore->glbiotimer_list = NULL;
-
     /* free the resource of epump thread management */
     DeleteCriticalSection(&pcore->epumplistCS);
-    arr_free(pcore->epump_list);
+    arr_pop_free(pcore->epump_list, epcore_epump_free);
     pcore->epump_list = NULL;
     ht_free(pcore->epump_tab);
     pcore->epump_tab = NULL;
@@ -221,6 +241,25 @@ void epcore_clean (void * vpcore)
     ht_free(pcore->worker_tab);
     pcore->worker_tab = NULL;
 
+    /* clean the IODevice facilities */
+    DeleteCriticalSection(&pcore->devicetableCS);
+    ht_free_all(pcore->device_table, epcore_iodev_free);
+    pcore->device_table = NULL;
+
+    /* clean the IOTimer facilities */
+    DeleteCriticalSection(&pcore->timertableCS);
+    ht_free_all(pcore->timer_table, epcore_iotimer_free);
+    pcore->timer_table = NULL;
+
+    /* free the global iodev, iotimer, listen port list */
+    DeleteCriticalSection(&pcore->glbiodevlistCS);
+    arr_free(pcore->glbiodev_list);
+    pcore->glbiodev_list = NULL;
+
+    DeleteCriticalSection(&pcore->glbiotimerlistCS);
+    arr_free(pcore->glbiotimer_list);
+    pcore->glbiotimer_list = NULL;
+
     DeleteCriticalSection(&pcore->eventnumCS);
 
 #ifdef HAVE_IOCP
@@ -228,10 +267,12 @@ void epcore_clean (void * vpcore)
 #endif
 
     /* release all memory pool resource */
-    bpool_clean(pcore->timer_pool);
-    bpool_clean(pcore->device_pool);
-    bpool_clean(pcore->event_pool);
-    bpool_clean(pcore->epump_pool);
+    mpool_free(pcore->device_pool);
+    mpool_free(pcore->timer_pool);
+    mpool_free(pcore->event_pool);
+    mpool_free(pcore->epump_pool);
+    mpool_free(pcore->devrbn_pool);
+    mpool_free(pcore->timrbn_pool);
 
     kfree(pcore);
 
@@ -275,8 +316,6 @@ void epcore_start_epump (void * vpcore, int maxnum)
     for (i = 0; i < maxnum; i++) {
         epump_main_start(pcore, 1);
     }
-
-    //epump_main_start(pcore, 0);
 }
 
 void epcore_stop_epump (void * vpcore)
@@ -375,7 +414,7 @@ int epcore_iodev_tcpnum (void * vpcore)
  
     EnterCriticalSection(&pcore->devicetableCS);
     num = ht_num(pcore->device_table);
-    for (i=0; i<num; i++) {
+    for (i = 0; i < num; i++) {
         pdev = ht_value(pcore->device_table, i);
         if (!pdev) continue;
         if (pdev->fdtype == FDT_CONNECTED || pdev->fdtype == FDT_ACCEPTED)
@@ -475,6 +514,32 @@ void * epump_thread_find (void * vpcore, ulong threadid)
     epump = ht_get(pcore->epump_tab, &threadid);
     LeaveCriticalSection(&pcore->epumplistCS);
  
+    return epump;
+}
+
+void * epump_thread_get (void * vpcore, ulong threadid)
+{
+    epcore_t  * pcore = (epcore_t *) vpcore;
+    epump_t   * epump = NULL;
+    worker_t  * wker = NULL;
+    ioevent_t * ioe = NULL;
+
+    if (!pcore) return NULL;
+
+    EnterCriticalSection(&pcore->epumplistCS);
+    epump = ht_get(pcore->epump_tab, &threadid);
+    LeaveCriticalSection(&pcore->epumplistCS);
+
+    if (!epump && ht_num(pcore->worker_tab) > 0 && threadid == get_threadid()) {
+        wker = worker_thread_find(pcore, threadid);
+        if (wker && (ioe = wker->curioe)) {
+            threadid = ioe->epumpid;
+            epump = epump_thread_find(pcore, threadid);
+        }
+    }
+
+    if (!epump) epump = epump_thread_select(pcore);
+
     return epump;
 }
 
@@ -585,6 +650,10 @@ int epump_thread_delpoll (void * vpcore, void * vpdev)
  
         if (epump_iodev_del(epump, pdev->fd) != NULL)
             (*epump->delpoll)(epump, pdev);
+        else
+            tolog(1, "Panic: ePumpThreadDelPoll [%lu %d %s %d %d] DevNum:%d %d/%d\n",
+                  pdev->id, pdev->fd, pdev->remote_ip, pdev->fdtype, pdev->bindtype,
+                  num, rbtree_num(epump->device_tree), ht_num(pcore->device_table));
     }
 
     LeaveCriticalSection(&pcore->epumplistCS);
@@ -712,7 +781,7 @@ int epcore_global_iodev_add (void * vpcore, void * vpdev)
     if (!pcore || !pdev) return -1;
  
     EnterCriticalSection(&pcore->glbiodevlistCS);
-    if (arr_search(pcore->glbiodev_list, &pdev->fd, iodev_cmp_fd) != pdev)
+    if (arr_search(pcore->glbiodev_list, (void *)(long)pdev->fd, iodev_cmp_fd) != pdev)
         arr_push(pcore->glbiodev_list, pdev);
     LeaveCriticalSection(&pcore->glbiodevlistCS);
  
@@ -739,7 +808,7 @@ int epcore_global_iodev_getmon (void * vpcore, void * veps)
     epcore_t * pcore = (epcore_t *)vpcore;
     epump_t  * epump = (epump_t *)veps;
     iodev_t  * pdev = NULL;
-    int        i, num;
+    int        i, num, ret = -111;
 
     if (!pcore) return -1;
     if (!epump) return -2;
@@ -764,8 +833,25 @@ int epcore_global_iodev_getmon (void * vpcore, void * veps)
 
         epump_iodev_add(epump, pdev);
 
-        if (epump->setpoll)
-            (*epump->setpoll)(epump, pdev);
+        if (epump->setpoll) {
+            ret = -11;
+            ret = (*epump->setpoll)(epump, pdev);
+        }
+
+#ifdef UNIX
+        tolog(1, "glbDev: id=%lu fd=%d fdtype=%d lport=%d bindtype=%d threadid=%lu "
+                 "BindTo epump: eplfd=%d threadid=%lu devnum=%d timernum=%d ioenum=%d, ret=%d\n",
+              pdev->id, pdev->fd, pdev->fdtype, pdev->local_port, pdev->bindtype, pdev->threadid,
+              epump->epoll_fd, epump->threadid, rbtree_num(epump->device_tree),
+              rbtree_num(epump->timer_tree), lt_num(epump->ioevent_list), ret);
+#endif
+#if defined(_WIN32) || defined(_WIN64)
+        tolog(1, "glbDev: id=%lu fd=%d fdtype=%d lport=%d bindtype=%d threadid=%lu "
+                 "BindTo epump: threadid=%lu devnum=%d timernum=%d ioenum=%d, ret=%d\n",
+              pdev->id, pdev->fd, pdev->fdtype, pdev->local_port, pdev->bindtype, pdev->threadid,
+              epump->threadid, rbtree_num(epump->device_tree),
+              rbtree_num(epump->timer_tree), lt_num(epump->ioevent_list), ret);
+#endif
     }
 
     LeaveCriticalSection(&pcore->glbiodevlistCS);
@@ -809,17 +895,18 @@ int epcore_global_iotimer_getmon (void * vpcore, void * veps)
     epcore_t   * pcore = (epcore_t *)vpcore;
     epump_t    * epump = (epump_t *)veps;
     iotimer_t  * iot = NULL;
-    int          i, num;
+    btime_t      curt;
  
     if (!pcore) return -1;
     if (!epump) return -2;
  
+    btime(&curt);
+
     EnterCriticalSection(&pcore->glbiotimerlistCS);
 
-    num = arr_num(pcore->glbiotimer_list);
-    for (i = 0; i < num; i++) {
+    while (arr_num(pcore->glbiotimer_list) > 0) {
 
-        iot = arr_delete(pcore->glbiotimer_list, i);
+        iot = arr_pop(pcore->glbiotimer_list);
         if (!iot)  continue;
 
         iot->epump = epump;
@@ -827,6 +914,14 @@ int epcore_global_iotimer_getmon (void * vpcore, void * veps)
         EnterCriticalSection(&epump->timertreeCS);
         rbtree_insert(epump->timer_tree, iot, iot, NULL);
         LeaveCriticalSection(&epump->timertreeCS);
+
+#ifdef UNIX
+        tolog(1, "glbTimer: id=%lu cmdidd=%d timediffnow=%ld threadid=%lu "
+                 "BindTo epump: eplfd=%d threadid=%lu devnum=%d timernum=%d ioenum=%d\n",
+              iot->id, iot->cmdid, btime_diff_ms(&iot->bintime, &curt), iot->threadid,
+              epump->epoll_fd, epump->threadid, rbtree_num(epump->device_tree),
+              rbtree_num(epump->timer_tree), lt_num(epump->ioevent_list));
+#endif
     }
 
     LeaveCriticalSection(&pcore->glbiotimerlistCS);
@@ -834,40 +929,144 @@ int epcore_global_iotimer_getmon (void * vpcore, void * veps)
     return 0;
 }
 
-void epcore_print (void * vpcore)
+void epcore_print (void * vpcore, frame_p frm, FILE * fp)
 {
     epcore_t   * pcore = (epcore_t *)vpcore;
     epump_t    * epump = NULL;
     worker_t   * wker = NULL;
+    mlisten_t  * mln = NULL;
+    DnsMgmt    * dnsmgmt = NULL;
     int          i, num;
+    long         memsize = 0;
 
     if (!pcore) return;
 
+    dnsmgmt = pcore->dnsmgmt;
+
+    memsize += mpool_size(pcore->device_pool);
+    memsize += mpool_size(pcore->timer_pool);
+    memsize += mpool_size(pcore->event_pool);
+    memsize += mpool_size(pcore->epump_pool);
+    memsize += mpool_size(pcore->devrbn_pool);
+    memsize += mpool_size(pcore->timrbn_pool);
+    if (dnsmgmt) {
+        memsize += mpool_size(dnsmgmt->msg_pool);
+        memsize += mpool_size(dnsmgmt->cache_pool);
+        memsize += kempool_size(dnsmgmt->fragmem_kempool);
+    }
+
+    if (frm) {
+        frame_appendf(frm, "ePump Total Memory: %ld (B)\n", memsize);
+
+        frame_appendf(frm, "\nePumpCore maxfd=%d  handled-event=%lu\n", pcore->maxfd, pcore->acc_event_num);
+        frame_appendf(frm, "  DeviceNum=%d   DevicdID=%lu\n", ht_num(pcore->device_table), pcore->deviceID);
+        frame_appendf(frm, "  TimerNum=%d   TimerID=%lu\n", ht_num(pcore->timer_table), pcore->timerID);
+        frame_appendf(frm, "  glbDeviceNum=%d\n", arr_num(pcore->glbiodev_list));
+        frame_appendf(frm, "  glbTimerNum=%d\n", arr_num(pcore->glbiotimer_list));
+        frame_appendf(frm, "  glbMListenNum=%d\n", arr_num(pcore->glbmlisten_list));
+
+        mpool_print(pcore->device_pool, "DevicePool", 2, frm, NULL);
+        mpool_print(pcore->timer_pool, "TimerPool", 2, frm, NULL);
+        mpool_print(pcore->event_pool, "EventPool", 2, frm, NULL);
+        mpool_print(pcore->epump_pool, "EPumpPool", 2, frm, NULL);
+        mpool_print(pcore->devrbn_pool, "DeviceRBNodePool", 2, frm, NULL);
+        mpool_print(pcore->timrbn_pool, "TimerRBNodePool", 2, frm, NULL);
+
+        frame_appendf(frm, "  DNS: msgnum=%d msgid=%u cachenum=%d\n",
+                      ht_num(dnsmgmt->msg_table), dnsmgmt->msgid, ht_num(dnsmgmt->cache_table));
+        mpool_print(dnsmgmt->msg_pool, "DnsMsgPool", 2, frm, NULL);
+        mpool_print(dnsmgmt->cache_pool, "DnsCachePool", 2, frm, NULL);
+
+        kempool_print(dnsmgmt->fragmem_kempool, frm, NULL, 0, 0, 0, "DNS-FragPool", 2);
+        if (dnsmgmt->fragmem_kempool) {
+            KemPool * memp = (KemPool *)dnsmgmt->fragmem_kempool;
+            mpool_print(memp->kemunit_pool, "KUnitPool", 6, frm, NULL);
+        }
+    }
+
+    if (fp) {
+        fprintf(fp, "ePump Total Memory: %ld (B)\n", memsize);
+
+        fprintf(fp, "\nePumpCore maxfd=%d handled-event=%lu\n", pcore->maxfd, pcore->acc_event_num);
+        fprintf(fp, "  DeviceNum=%d DevicdID=%lu\n", ht_num(pcore->device_table), pcore->deviceID);
+        fprintf(fp, "  TimerNum=%d TimerID=%lu\n", ht_num(pcore->timer_table), pcore->timerID);
+        fprintf(fp, "  glbDeviceNum=%d\n", arr_num(pcore->glbiodev_list));
+        fprintf(fp, "  glbTimerNum=%d\n", arr_num(pcore->glbiotimer_list));
+        fprintf(fp, "  glbMListenNum=%d\n", arr_num(pcore->glbmlisten_list));
+
+        mpool_print(pcore->device_pool, "DevicePool", 2, NULL, fp);
+        mpool_print(pcore->timer_pool, "TimerPool", 2, NULL, fp);
+        mpool_print(pcore->event_pool, "EventPool", 2, NULL, fp);
+        mpool_print(pcore->epump_pool, "EPumpPool", 2, NULL, fp);
+        mpool_print(pcore->devrbn_pool, "DeviceRBNodePool", 2, NULL, fp);
+        mpool_print(pcore->timrbn_pool, "TimerRBNodePool", 2, NULL, fp);
+
+        fprintf(fp, "  DNS: msgnum=%d msgid=%u cachenum=%d\n",
+                ht_num(dnsmgmt->msg_table), dnsmgmt->msgid, ht_num(dnsmgmt->cache_table));
+        mpool_print(dnsmgmt->msg_pool, "DnsMsgPool", 2, NULL, fp);
+        mpool_print(dnsmgmt->cache_pool, "DnsCachePool", 2, NULL, fp);
+
+        kempool_print(dnsmgmt->fragmem_kempool, NULL, fp, 0, 0, 0, "DNS-FragPool", 2);
+        if (dnsmgmt->fragmem_kempool) {
+            KemPool * memp = (KemPool *)dnsmgmt->fragmem_kempool;
+            mpool_print(memp->kemunit_pool, "KUnitPool", 6, NULL, fp);
+        }
+    }
+
+    num = arr_num(pcore->glbmlisten_list);
+    for (i = 0; i < num; i++) {
+        mln = arr_value(pcore->glbmlisten_list, i);
+        if (frm) frame_appendf(frm, "  TCP Listen: %s:%d\n", mln->localip, mln->port);
+        if (fp) fprintf(fp, "  TCP Listen: %s:%d\n", mln->localip, mln->port);
+    }
+
     EnterCriticalSection(&pcore->epumplistCS);
     num = arr_num(pcore->epump_list);
-    printf("Total epump thread %d:\n", num);
+    if (frm)
+        frame_appendf(frm, "\nTotal ePump thread %d:\n", num);
+    if (fp) 
+        fprintf(fp, "\nTotal ePump thread %d:\n", num);
     for (i = 0; i < num; i++) {
         epump = arr_value(pcore->epump_list, i);
         if (!epump) continue;
  
-        printf("  [Thread %d]:%lu iodev:%d iotimer:%d\n", i+1, epump->threadid,
-               epump_objnum(epump, 1), epump_objnum(epump, 2));
+        if (frm)
+            frame_appendf(frm, "  [ePump %-2d]:%lu iodev:%d iotimer:%d\n", i+1, epump->threadid,
+                          epump_objnum(epump, 1), epump_objnum(epump, 2));
+        if (fp)
+            fprintf(fp, "  [ePump %-2d]:%lu iodev:%d iotimer:%d\n", i+1, epump->threadid,
+                    epump_objnum(epump, 1), epump_objnum(epump, 2));
     }
     LeaveCriticalSection(&pcore->epumplistCS);
 
     EnterCriticalSection(&pcore->workerlistCS);
     num = arr_num(pcore->worker_list);
-    printf("Total worker thread %d:\n", num);
+    if (frm)
+        frame_appendf(frm, "\nTotal Worker thread %d:\n", num);
+    if (fp)
+        fprintf(fp, "\nTotal Worker thread %d:\n", num);
     for (i = 0; i < num; i++) {
         wker = arr_value(pcore->worker_list, i);
         if (!wker) continue;
  
-        printf("  [Thread %d]:%lu idle_time:%lu working_time:%lu working_ratio:%.3f "
-               "execute_event:%lu pending_event:%d\n",
-               i+1, wker->threadid, wker->acc_idle_time,
-               wker->acc_working_time, wker->working_ratio,
-               wker->acc_event_num, lt_num(wker->ioevent_list));
+        if (frm)
+            frame_appendf(frm, "  [Worker %-2d]:%lu idle_time:%lu working_time:%lu working_ratio:%.3f "
+                               "total_event:%lu pending_event:%d work_load:%d\n",
+                          i+1, wker->threadid, wker->acc_idle_time,
+                          wker->acc_working_time, wker->working_ratio,
+                          wker->acc_event_num, lt_num(wker->ioevent_list), wker->workload);
+        if (fp)
+            fprintf(fp, "  [Worker %-2d]:%lu idle_time:%lu working_time:%lu working_ratio:%.3f "
+                        "total_event:%lu pending_event:%d work_load:%d\n",
+                   i+1, wker->threadid, wker->acc_idle_time,
+                   wker->acc_working_time, wker->working_ratio,
+                   wker->acc_event_num, lt_num(wker->ioevent_list), wker->workload);
     }
     LeaveCriticalSection(&pcore->workerlistCS);
+
+    if (frm)
+        frame_appendf(frm, "\n");
+    if (fp)
+        fprintf(fp, "\n");
 }
 
