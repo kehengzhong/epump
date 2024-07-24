@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
  
 #ifndef _EPUMP_DNS_H_
@@ -126,11 +150,14 @@ extern "C" {
 #define DNS_ERR_SEND_FAIL      405
 #define DNS_ERR_RESOURCE_FAIL  500
 
-typedef int DnsCB (void * cbobj, char * name, int namelen, void * cache, int status);
+#define DNS_NAME_LEN           256
+
+
+typedef int DnsCB (void * cbobj, ulong objid, char * name, int namelen, void * cache, int status);
 
 /* converts a DNS-based hostname into dot-based format,
    3www5apple3com0 into www.apple.com */
-int hostn_to_dot_format (void * name, int len, void * pdst, int dstlen);
+int hostn_to_dot_format (void * name, int len, void * pdst, int dstsize, int * dstlen);
 
 /* converts the dot-based hostname into the DNS format.
    www.apple.com into 3www5apple3com0 */
@@ -143,22 +170,28 @@ int hostn_to_dns_format (void * name, int len, void * pdst, int dstlen);
 typedef struct dns_host_s {
     char             * host;
     char               ip[41];
-    int                port;
     ep_sockaddr_t      addr;
+
+    unsigned   port      : 29;
+    unsigned   alloctype : 3;//0-default kalloc/kfree 1-os-specific malloc/free 2-kmempool alloc/free 3-kmemblk alloc/free
+    void     * mpool;
 } DnsHost;
  
-void * dns_host_alloc ();
+void * dns_host_alloc (int alloctype, void * mpool);
 void   dns_host_free  (void * vhost);
-void * dns_host_new   (char * nshost, char * nsip, int port);
+void * dns_host_new   (char * nshost, char * nsip, int port, int alloctype, void * mpool);
  
 typedef struct dns_nsrv {
  
+    uint8    alloctype;//0-default kalloc/kfree 1-os-specific malloc/free 2-kmempool alloc/free 3-kmemblk alloc/free
+    void   * mpool;
+
     CRITICAL_SECTION   hostCS;
     arr_t            * host_list;
  
 } DnsNSrv;
  
-void * dns_nsrv_alloc ();
+void * dns_nsrv_alloc (int alloctype, void * mpool);
 void   dns_nsrv_free  (void * vnsrv);
  
 int    dns_nsrv_num   (void * vnsrv);
@@ -172,6 +205,9 @@ int    dns_nsrv_load   (void * vmgmt, char * nsip, char * resolv_file);
  ******************************************************/
 
 typedef struct dns_rr_s {
+    uint8     alloctype;//0-default kalloc/kfree 1-os-specific malloc/free 2-kmempool alloc/free 3-kmemblk alloc/free
+    void    * mpool;
+
     int       namelen;
     char    * name;
  
@@ -188,13 +224,13 @@ typedef struct dns_rr_s {
     time_t    rcvtick;
 } DnsRR;
  
-void * dns_rr_alloc ();
+void * dns_rr_alloc (int alloctype, void * mpool);
 void   dns_rr_free  (void * vrr);
 void * dns_rr_dup   (void * vrr);
  
 void   dns_rr_print (void * vrr);
  
-int    dns_rr_name_parse (void * vrr, uint8 * p, int len, uint8 * bufbgn, uint8 ** nextptr, uint8 ** pname);
+int    dns_rr_name_parse (void * vrr, uint8 * p, int len, uint8 * bufbgn, uint8 ** nextptr, uint8 ** pname, int * plen);
 int    dns_rr_parse      (void * vrr, uint8 * p, int len, uint8 * bufbgn, uint8 ** nextrr);
 
 /***************************************************
@@ -202,7 +238,7 @@ int    dns_rr_parse      (void * vrr, uint8 * p, int len, uint8 * bufbgn, uint8 
  ***************************************************/
 
 typedef struct dns_cache_s {
-    char               name[256];
+    char               name[DNS_NAME_LEN];
  
     CRITICAL_SECTION   rrlistCS;
     arr_t            * rr_list;
@@ -210,13 +246,20 @@ typedef struct dns_cache_s {
     time_t             stamp;
     int                anum;
  
+    CRITICAL_SECTION   tryCS;
+    int                trymsg;
+    int                failmsg;
+    int                succmsg;
+
     void             * dnsmgmt;
 } DnsCache;
  
 int    dns_cache_cmp_name (void * a, void * pat);
  
-void * dns_cache_alloc ();
-void   dns_cache_free  (void * vcache);
+void * dns_cache_alloc (void * vmgmt);
+int    dns_cache_init  (void * vca);
+int    dns_cache_free  (void * vcache);
+int    dns_cache_recycle (void * vcache);
  
 int    dns_cache_add    (void * vcache, void * vrr);
 int    dns_cache_zap    (void * vcache);
@@ -225,7 +268,7 @@ int    dns_cache_verify (void * vcache);
 int    dns_cache_copy    (void * vsrc, void * vdst);
 int    dns_cache_copy_ip (void * vcache, char * ip, int len);
 int    dns_cache_getip   (void * vcache, int ind, char * ip, int len);
-int    dns_cache_getiplist (void * vcache, char ** iplist, int listnum);
+int    dns_cache_getiplist (void * vcache, char iplist[][41], int listnum);
 int    dns_cache_sockaddr(void * vcache, int index, int port, ep_sockaddr_t * addr);
  
 int    dns_cache_num       (void * vcache);
@@ -273,16 +316,14 @@ typedef struct dns_header_s {
 typedef struct dns_msg_s {
     uint16          msgid;
  
-    char          * name;
+    char            name[DNS_NAME_LEN];
     int             nlen;
  
     /* question of query */
-    char          * qname;
+    char            qname[DNS_NAME_LEN];
     int             qnlen;
     uint16          qtype;
     uint16          qclass;
- 
-    frame_t       * reqfrm;
  
     void          * nsrv;
     int             nsrvind;
@@ -299,17 +340,16 @@ typedef struct dns_msg_s {
     arr_t         * ns_list;
     arr_t         * ar_list;
  
-    frame_t       * resfrm;
- 
     DnsCB         * dnscb;
     void          * cbobj;
+    ulong           cbobjid;
     uint8           cbexec;
  
     void          * lifetimer;
     int             sendtimes;
  
-    /*jmp_buf         jbenv;*/
- 
+    DnsCache      * cache;
+
     ulong           threadid;
     void          * dnsmgmt;
 } DnsMsg;
@@ -327,10 +367,10 @@ int    dns_msg_free    (void * vmsg);
 void * dns_msg_fetch   (void * vmgmt);
 int    dns_msg_recycle (void * vmsg);
  
-int    dns_msg_encode (void * vmsg, char * name, int len);
-int    dns_msg_decode (void * vmsg);
+int    dns_msg_encode (void * vmsg, char * name, int len, uint8 * pbuf, int bufsize);
+int    dns_msg_decode (void * vmsg, uint8 * buf, int len);
  
-void * dns_msg_open  (void * vmgmt, char * name, int len, DnsCB * cb, void * cbobj);
+void * dns_msg_open  (void * vmgmt, char * name, int len, DnsCB * cb, void * cbobj, ulong objid);
 int    dns_msg_close (void * vmsg);
  
 int    dns_msg_send  (void * vmsg, char * name, int len, void * vnsrv);
@@ -360,8 +400,12 @@ typedef struct dns_mgmt_s {
     hashtab_t        * msg_table;
     CRITICAL_SECTION   msgCS;
  
-    bpool_t          * msg_pool;
+    mpool_t          * cache_pool;
+    mpool_t          * msg_pool;
  
+    void             * fragmem_kempool;
+    int                fragmem_alloctype;
+
     void             * cachetimer;
  
     void             * pcore;
@@ -370,14 +414,15 @@ typedef struct dns_mgmt_s {
 void * dns_mgmt_init  (void * pcore, char * nsip, char * resolv_file);
 void   dns_mgmt_clean (void * vmgmt);
  
-int    dns_nb_query (void * vmgmt, char * name, int len, void * vnsrv, void ** pcache, DnsCB * cb, void * cbobj);
+int    dns_nb_query (void * vmgmt, char * name, int len, void * vnsrv, void ** pcache,
+                     DnsCB * cb, void * cbobj, ulong objid);
  
 int    dns_recv  (void * vmgmt, void * pobj);
  
 int    dns_pump  (void * vmgmt, void * pobj, int event, int fdtype);
 
 
-int    dns_query (void * vpcore, char * name, int len, DnsCB * cb, void * cbobj);
+int    dns_query (void * vpcore, char * name, int len, DnsCB * cb, void * cbobj, ulong objid);
 
 #ifdef  __cplusplus
 }

@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #ifndef _IOEVENT_H_
@@ -21,6 +45,7 @@ extern "C" {
 #define IOE_INVALID_DEV      6
 #define IOE_TIMEOUT          100
 #define IOE_DNS_RECV         200
+#define IOE_DNS_CLOSE        201
 #define IOE_USER_DEFINED     10000
 
 
@@ -68,9 +93,11 @@ void   ioevent_print (void * vioe, char * title);
 #define PushTimeoutEvent(epump, obj)     ioevent_push((epump), IOE_TIMEOUT, (obj), NULL, NULL)
 #define PushInvalidDevEvent(epump, obj)  ioevent_push((epump), IOE_INVALID_DEV, (obj), NULL, NULL)
 #define PushDnsRecvEvent(epump, obj)     ioevent_push((epump), IOE_DNS_RECV, (obj), NULL, NULL)
+#define PushDnsCloseEvent(epump, obj)    ioevent_push((epump), IOE_DNS_CLOSE, (obj), NULL, NULL)
 
 #define PushUserEvent (epump, obj, cb, para) \
           ioevent_push((epump), IOE_USER_DEFINED, (obj), (cb), (para))
+
 
 #ifdef __cplusplus   
 }   

@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #ifndef _EPUMP_LOCAL_H_
@@ -56,18 +80,24 @@ typedef struct EPump_ {
     void             * wakeupdev;
 #endif
 
-    /* manage all the device being probed in select_set 
-     * the instance stored in the list is from DeviceDesc */
+    uint8              epumpsleep;
+
+    /* Store all devices that need event monitoring in the current ePump thread.
+       The same device object may be added to the device_tree in multiple ePump,
+       so the alloc_node parameter must be set to 1 when creating the device_tree. */
     CRITICAL_SECTION   devicetreeCS;
     rbtree_t         * device_tree;
 
-    /* all the timer instance arranged in a sorted list */
+    /* Manage the timer triggered by the current ePump thread, and the timer instances
+       are sorted according to the timeout time and timer ID. The global timer will be
+       added to the timer_tree in multiple ePump. The alloc_node must be set 1 also. */
     CRITICAL_SECTION   timertreeCS;
     rbtree_t         * timer_tree;
 
-    /* when select returned, some fd read/write event occur. probing system
-     * will generate some reading or writing events to fill into the event list.
-     * and set the event to signal state to wake up all the blocking thread. */
+    /* ePump monitors the FD list for read-write readiness and timer timeout.
+       When read-write readiness or timer timeout occurs, it creates events
+       such as readable, writable, connected or timeout, and adds the ioevent_t
+       events to the following queue. */
     CRITICAL_SECTION   ioeventlistCS;
     dlist_t          * ioevent_list;
     void             * curioe;
@@ -92,7 +122,9 @@ typedef struct EPump_ {
 
 
 void * epump_new (epcore_t * epcore);
-void   epump_free (void * vepump);
+int    epump_free (void * vepump);
+
+int    epcore_epump_free (void * vepump);
 
 int  epump_init (void * vpump);
 void epump_recycle (void * vpump);
@@ -108,7 +140,9 @@ ulong  epumpid (void * veps);
 int    epump_iodev_add (void * veps, void * vpdev);
 void * epump_iodev_del (void * veps, SOCKET fd);
 void * epump_iodev_find (void * vepump, SOCKET fd);
+
 int    epump_iodev_tcpnum(void * vepump);
+void   epump_iodev_print (void * vepump, int printtype);
 SOCKET epump_iodev_maxfd (void * vepump);
 int    epump_iodev_scan  (void * vepump);
 

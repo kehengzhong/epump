@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #ifndef _IODEV_H_
@@ -10,6 +34,13 @@
 #include "tsock.h"
 #include "mthread.h"
 #include "frame.h"
+
+#ifdef HAVE_OPENSSL
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+//#include <openssl/x509.h>
+//#include <openssl/x509v3.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,7 +93,7 @@ extern "C" {
  * events as hardware does. it wraps the file-descriptor of device.  */
 
 typedef struct IODevice_ {
-    void      * res[2];
+    void      * res[4];
 
     CRITICAL_SECTION fdCS;
 
@@ -77,6 +108,11 @@ typedef struct IODevice_ {
     void      * para;
     IOHandler * callback;
     void      * cbpara;
+
+#ifdef HAVE_OPENSSL
+    SSL_CTX   * sslctx;
+    SSL       * ssl;
+#endif
 
     char        local_ip[41];
     uint16      local_port;
@@ -95,11 +131,6 @@ typedef struct IODevice_ {
     int             iocpsend;
 #endif
 
-    void      * iot;
-
-    void      * epcore;
-    void      * epump;
-
     /* worker thread id */
     ulong       threadid;
 
@@ -112,12 +143,21 @@ typedef struct IODevice_ {
     unsigned    reuseport:1;
     unsigned    keepalive:1;
 
+    unsigned    ssl_handshaked:1;
+
+    void      * iot;
+
+    void      * epump;
+    void      * epcore;
+
 } iodev_t, *iodev_p;
 
 
 iodev_t * iodev_alloc ();
 int       iodev_init (void * vpdev);
-void      iodev_free (void * vpdev);
+int       epcore_iodev_free (void * vpdev);
+int       iodev_free (void * vpdev);
+
 int       iodev_cmp_iodev (void * a, void * b);
 int       iodev_cmp_id (void * a, void * b);
 int       iodev_cmp_fd (void * a, void * b);
@@ -126,10 +166,17 @@ ulong     iodev_hash_func (void * key);
 
 
 void * iodev_new  (void * vpcore);
-void   iodev_close(void * vpdev);
-void   iodev_linger_close(void * vpdev);
 
-void * iodev_new_from_fd (void * vpcore, SOCKET fd, int fdtype, 
+void     iodev_closeit (void * vdev);
+#define  iodev_close(pdev) iodev_close_dbg((pdev), __FILE__, __LINE__)
+void     iodev_close_dbg(void * vpdev, char * file, int line);
+
+#define  iodev_close_by(pcore, id) iodev_close_by_dbg((pcore), (id), __FILE__, __LINE__)
+void     iodev_close_by_dbg (void * vpcore, ulong id, char * file, int line);
+
+void     iodev_linger_close(void * vpdev);
+
+void   * iodev_new_from_fd (void * vpcore, SOCKET fd, int fdtype, 
                              void * para, IOHandler * cb, void * cbpara);
 
 int      iodev_rwflag_set(void * vpdev, uint8 rwflag);
@@ -141,13 +188,14 @@ int      iodev_add_notify (void * vpdev, uint8 rwflag);
 int      iodev_del_notify (void * vpdev, uint8 rwflag);
 
 int      iodev_unbind_epump (void * vdev);
-int      iodev_bind_epump   (void * vpdev, int bindtype, void * veps);
+int      iodev_bind_epump   (void * vpdev, int bindtype, ulong epumpid, int nopoll);
 
 ulong    iodev_id (void * vpdev);
 void   * iodev_para (void * vpdev);
 void     iodev_para_set (void * vpdev, void * para);
 void   * iodev_epcore (void * vpdev);
 void   * iodev_epump (void * vpdev);
+ulong    iodev_epumpid (void * vpdev);
 SOCKET   iodev_fd (void * vpdev);
 int      iodev_fdtype (void * vpdev);
 int      iodev_rwflag (void * vpdev);

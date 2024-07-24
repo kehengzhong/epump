@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #ifndef _EVENT_PUMP_H_
@@ -35,6 +59,7 @@ typedef int GeneralCB (void * vpara, int status);
 #define IOE_INVALID_DEV      6
 #define IOE_TIMEOUT          100
 #define IOE_DNS_RECV         200
+#define IOE_DNS_CLOSE        201
 #define IOE_USER_DEFINED     10000
 
 #define RWF_READ             0x02
@@ -52,13 +77,15 @@ typedef int GeneralCB (void * vpara, int status);
 struct EPCore_;
 typedef struct EPCore_ epcore_t;
 
-void * epcore_new (int maxfd, int dispmode);
+void * epcore_new (int maxfd);
 void   epcore_clean (void * vpcore);
 int    epcore_dnsrv_add (void * vpcore, char * nsip, int port);
 int    epcore_set_callback (void * vpcore, void * cb, void * cbpara);
 
 void   epcore_start_epump (void * vpcore, int maxnum);
 void   epcore_stop_epump (void * vpcore);
+void * epump_thread_find (void * vpcore, ulong threadid);
+void * epump_thread_get  (void * vpcore, ulong threadid);
 void * epump_thread_self (void * vpcore);
 void * epump_thread_select (void * vpcore);
 
@@ -68,14 +95,14 @@ void * worker_thread_find (void * vpcore, ulong threadid);
 void * worker_thread_self (void * vpcore);
 void * worker_thread_select (void * vpcore);
 
-void   epcore_print (void * vpcore);
+void   epcore_print (void * vpcore, frame_p frm, FILE * fp);
  
 
 struct EPump_ ;
 typedef struct EPump_ epump_t;
 
 void * epump_new (epcore_t * epcore);
-void   epump_free (void * vepump);
+int    epump_free (void * vepump);
 ulong  epumpid (void * veps);
 
 int    epump_objnum (void * veps, int type);
@@ -119,7 +146,7 @@ void worker_main_stop (void * vwker);
 #define FDT_STDIN             0x100000
 #define FDT_STDOUT            0x200000
  
-/* as the basic structure of EP, epdevice generates read/write
+/* as the basic structure of ePump, IODevice generates read/write
  * events as hardware does. it wraps the file-descriptor of device.  */
 
 struct IODevice_;
@@ -128,21 +155,31 @@ typedef struct IODevice_ iodev_t;
 void   * iodev_new  (void * vpcore);
 void   * iodev_new_from_fd (void * vpcore, SOCKET fd, int fdtype,
                              void * para, IOHandler * cb, void * cbpara);
-void     iodev_close(void * vpdev);
+void     iodev_closeit (void * vdev);
+#define  iodev_close(pdev) iodev_close_dbg((pdev), __FILE__, __LINE__)
+void     iodev_close_dbg(void * vpdev, char * file, int line);
+
+#define  iodev_close_by(pcore, id) iodev_close_by_dbg((pcore), (id), __FILE__, __LINE__)
+void     iodev_close_by_dbg (void * vpcore, ulong id, char * file, int line);
+
 void     iodev_linger_close(void * vpdev);
  
+int      iodev_set_poll   (void * vdev);
+int      iodev_clear_poll (void * vdev);
+
 int      iodev_rwflag_set (void * vpdev, uint8 rwflag);
 int      iodev_add_notify (void * vdev, uint8 rwflag);
 int      iodev_del_notify (void * vdev, uint8 rwflag);
 
 int      iodev_unbind_epump (void * vdev);
-int      iodev_bind_epump   (void * vpdev, int bindtype, void * veps);
+int      iodev_bind_epump   (void * vpdev, int bindtype, ulong epumpid, int nopoll);
  
 ulong    iodev_id (void * vpdev);
 void   * iodev_para (void * vpdev);
 void     iodev_para_set (void * vpdev, void * para);
 void   * iodev_epcore (void * vpdev);
 void   * iodev_epump (void * vpdev);
+ulong    iodev_epumpid (void * vpdev);
 SOCKET   iodev_fd (void * vpdev);
 int      iodev_fdtype (void * vpdev);
 int      iodev_rwflag (void * vpdev);
@@ -159,75 +196,79 @@ int      iodev_tcp_nodelay_set (void * vpdev, int value);
 int      iodev_tcp_nopush      (void * vpdev);
 int      iodev_tcp_nopush_set  (void * vpdev, int value);
 
-int      iodev_print (void * vpcore);
+void     epump_iodev_print (void * vepump, int printtype);
  
 
- 
-void * iotimer_start (void * vpcore, int ms, int cmdid, void * para,
-                      IOHandler * cb, void * cbpara);
-int    iotimer_stop  (void * viot);
+void * iotimer_start(void * vpcore, int ms, int cmdid, void * para, 
+                     IOHandler * cb, void * cbpara, ulong epumpid);
+#define iotimer_stop(pcore, iot) iotimer_stop_dbg((pcore), (iot), __FILE__, __LINE__)
+int    iotimer_stop_dbg (void * vpcore, void * viot, char * file, int line);
+
+void   epump_iotimer_print (void * vepump, int printtype);
+
 ulong  iotimer_id (void * viot);
 int    iotimer_cmdid (void * viot);
 void * iotimer_para (void * viot);
 void * iotimer_epump (void * viot);
+ulong  iotimer_epumpid (void * viot);
 
 ulong  iotimer_workerid     (void * viot);
 void   iotimer_workerid_set (void * viot, ulong workerid);
  
 
 void * mlisten_open  (void * epcore,  char * localip, int port, int fdtype,
-                      void * para, IOHandler * cb, void * cbpara);
+                      void * popt, void * para, IOHandler * cb, void * cbpara);
 int    mlisten_close (void * vmln);
 
 int    mlisten_port  (void * vmln);
 char * mlisten_lip   (void * vmln);
 
 
-void * eptcp_listen (void * vpcore, char * localip, int port, void * para, int * retval,
-                     IOHandler * cb, void * cbpara, int bindtype,
-                     void ** plist, int * listnum);
+void * eptcp_listen (void * vpcore, char * localip, int port, void * popt, void * para,
+                     IOHandler * cb, void * cbpara, int bindtype, void ** plist,
+                     int * listnum, int * pret);
  
 /* Note: automatically detect if Linux kernel supported REUSEPORT. 
    if supported, create listen socket for every current running epump threads
    and future-started epump threads.
    if not, create only one listen socket for all epump threads to bind. */
 
-void * eptcp_mlisten (void * vpcore, char * localip, int port, void * para,
-                      IOHandler * cb, void * cbpara);
+void * eptcp_mlisten (void * vpcore, char * localip, int port, void * popt,
+                      void * para, IOHandler * cb, void * cbpara);
 
-void * eptcp_accept (void * vpcore, void * vld, void * para, int * retval,
-                     IOHandler * cb, void * cbpara, int bindtype);
+void * eptcp_accept (void * vpcore, void * vld, void * popt, void * para, IOHandler * cb,
+                     void * cbpara, int bindtype, ulong threadid, int * retval);
+
+void * eptcp_connect (void * vpcore, char * host, int port,
+                      char * localip, int localport, void * popt, void * para,
+                      IOHandler * cb, void * cbpara, ulong threadid, int * retval);
+
+void * eptcp_nb_connect (void * vpcore, char * host, int port, char * localip,
+                         int localport, void * popt, void * para, IOHandler * cb,
+                         void * cbpara, ulong threadid, int * retval);
+
+
+void * epudp_listen (void * vpcore, char * localip, int port, void * popt, void * para,
+                     IOHandler * cb, void * cbpara, int bindtype, void ** plist,
+                     int * listnum, int * pret);
  
-void * eptcp_connect (void * vpcore, char * ip, int port,
-                      char * localip, int localport, void * para,
-                      int * retval, IOHandler * cb, void * cbpara);
-
-void * eptcp_nb_connect (void * vpcore, char * host, int port,
-                         char * localip, int localport, void * para,
-                         int * retval, IOHandler * cb, void * cbpara);
-
-
-void * epudp_listen (void * vpcore, char * localip, int port, void * para, int * pret,
-                     IOHandler * cb, void * cbpara, int bindtype, void ** plist, int * listnum);
+void * epudp_mlisten (void * vpcore, char * localip, int port, void * popt,
+                      void * para, IOHandler * cb, void * cbpara);
  
-void * epudp_mlisten (void * vpcore, char * localip, int port, void * para,
-                      IOHandler * cb, void * cbpara);
- 
-void * epudp_client (void * vpcore, char * localip, int port, 
-                     void * para, int * retval, IOHandler * cb, void * cbpara,
-                     iodev_t ** devlist, int * devnum);
+void * epudp_client (void * vpcore, char * localip, int port, void * popt,
+                     void * para, IOHandler * cb, void * cbpara,
+                     iodev_t ** devlist, int * devnum, int * retval);
 
-int    epudp_recvfrom (void * vdev, void * vfrm, void * addr, int * pnum);
+int    epudp_recvfrom (void * vdev, void * vfrm, void * pbuf, int bufsize, void * addr, int * pnum);
 
+void * epusock_connect (void * vpcore, char * sockname, void * para, IOHandler * ioh,
+                        void * iohpara, ulong threadid, int * retval);
 
-void * epusock_connect (void * vpcore, char * sockname, void * para,
-                        int * retval, IOHandler * ioh, void * iohpara);
- 
-void * epusock_listen (void * vpcore, char * sockname, void * para, int * retval,
-                       IOHandler * cb, void * cbpara);
- 
-void * epusock_accept (void * vpcore, void * vld, void * para, int * retval,
-                       IOHandler * cb, void * cbpara, int bindtype);
+void * epusock_listen (void * vpcore, char * sockname, void * para,
+                       IOHandler * cb, void * cbpara, int * retval);
+
+void * epusock_accept (void * vpcore, void * vld, void * para, IOHandler * cb,
+                       void * cbpara, int bindtype, ulong threadid, int * retval);
 
 
 void * epfile_bind_fd (void * vpcore, int fd, void * para, IOHandler * ioh, void * iohpara);
@@ -249,13 +290,13 @@ void * epfile_bind_stdin (void * vpcore, void * para, IOHandler * ioh, void * io
 #define DNS_ERR_SEND_FAIL      405
 #define DNS_ERR_RESOURCE_FAIL  500
 
-typedef int DnsCB (void * cbobj, char * name, int namelen, void * cache, int status);
+typedef int DnsCB (void * cbobj, ulong objid, char * name, int namelen, void * cache, int status);
 
-int    dns_query (void * vpcore, char * name, int len, DnsCB * cb, void * cbobj);
+int    dns_query (void * vpcore, char * name, int len, DnsCB * cb, void * cbobj, ulong objid);
 
 int    dns_cache_num      (void * vcache);
 int    dns_cache_getip    (void * vcache, int ind, char * iplist, int len);
-int    dns_cache_getiplist(void * vcache, char ** iplist, int listnum);
+int    dns_cache_getiplist(void * vcache, char iplist[][41], int listnum);
 int    dns_cache_sockaddr (void * vcache, int index, int port, ep_sockaddr_t * addr);
 int    dns_cache_a_num    (void * vcache);
 

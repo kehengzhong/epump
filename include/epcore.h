@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2021 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #ifndef _EPCORE_H_
@@ -11,7 +35,9 @@
 #include "dynarr.h"
 #include "hashtab.h"
 #include "bpool.h"
+#include "mpool.h"
 #include "btime.h"
+#include "frame.h"
 
 #ifdef __cplusplus      
 extern "C" {           
@@ -27,12 +53,6 @@ typedef int fd_dispatch (void * vepump, btime_t * delay);
 typedef struct EPCore_ {
 
     int                maxfd;
-
-    /* the mode of dispatching the event to one worker:
-        0 - random dispatch, based on the worker load
-        1 - dispatch it to the worker that creates iodev_t or iotimer_t
-     */
-    int                dispmode;
 
 #ifdef HAVE_IOCP
     HANDLE             iocp_port;
@@ -63,16 +83,25 @@ typedef struct EPCore_ {
     CRITICAL_SECTION   glbmlistenlistCS;
     arr_t            * glbmlisten_list;
 
-    /* epump objects are in charge of managing and representing 
-       the monitoring threads, and organized by following list */
+    /* An ePump instance corresponds to an ePump thread, and the ePump thread
+       calls epoll/select/kqueue and other mechanisms to monitor the read-write
+       readiness of the file descriptor and the timeout state of the timer,
+       generate an event, and execute the callback function corresponding to
+       the event, and so on. The system creates ePump threads with the corresponding
+       number of CPU cores to make efficient use of concurrent computing power. */
     CRITICAL_SECTION   epumplistCS;
     int                curpump;
     arr_t            * epump_list;
     hashtab_t        * epump_tab;
     time_t             epump_sorttime;
 
-    /* worker threads are event-driven to handle all kinds of events,
-       including reading/writing/accepted/connected of FD, timeout */
+    /* A worker_t instance corresponds to a worker thread, and the worker thread
+       blocks to wait for the event queue and calls the callback function to handle
+       the events in the event queue of the worker_t instance. Events are created
+       by the ePump thread and posted to the event queue of the specified worker
+       instance according to the binding relationship. It is generally recommended
+       that the system does not create a worker thread, and the ePump thread is
+       responsible for both event monitoring and event handling. */
     CRITICAL_SECTION   workerlistCS;
     int                curwk;
     arr_t            * worker_list;
@@ -87,10 +116,12 @@ typedef struct EPCore_ {
     void             * cbpara;
  
     /* memory pool management */
-    bpool_t          * device_pool;
-    bpool_t          * timer_pool;
-    bpool_t          * event_pool;
-    bpool_t          * epump_pool;
+    mpool_t          * device_pool;
+    mpool_t          * timer_pool;
+    mpool_t          * event_pool;
+    mpool_t          * epump_pool;
+    mpool_t          * devrbn_pool;
+    mpool_t          * timrbn_pool;
 
     /* DNS management instance */
     void             * dnsmgmt;
@@ -104,7 +135,7 @@ typedef struct EPCore_ {
 } epcore_t, *epcore_p;
 
 
-void * epcore_new (int maxfd, int dispmode);
+void * epcore_new (int maxfd);
 void   epcore_clean (void * vpcore);
 
 int    epcore_dnsrv_add (void * vpcore, char * nsip, int port);
@@ -133,6 +164,7 @@ void * epcore_iotimer_find (void * vpcore, ulong id);
 int    epump_thread_add (void * vpcore, void * vepump);
 int    epump_thread_del (void * vpcore, void * vepump);
 void * epump_thread_find (void * vpcore, ulong threadid);
+void * epump_thread_get  (void * vpcore, ulong threadid);
 void * epump_thread_self (void * vpcore);
 void * epump_thread_select (void * vpcore);
 
@@ -155,7 +187,7 @@ int epcore_global_iotimer_add (void * vpcore, void * viot);
 int epcore_global_iotimer_del (void * vpcore, void * viot);
 int epcore_global_iotimer_getmon (void * vpcore, void * veps);
 
-void epcore_print (void * vpcore);
+void epcore_print (void * vpcore, frame_p frm, FILE * fp);
 
 #ifdef __cplusplus
 }   

@@ -1,6 +1,30 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved. See MIT LICENSE for redistribution.
+ *
+ * #####################################################
+ * #                       _oo0oo_                     #
+ * #                      o8888888o                    #
+ * #                      88" . "88                    #
+ * #                      (| -_- |)                    #
+ * #                      0\  =  /0                    #
+ * #                    ___/`---'\___                  #
+ * #                  .' \\|     |// '.                #
+ * #                 / \\|||  :  |||// \               #
+ * #                / _||||| -:- |||||- \              #
+ * #               |   | \\\  -  /// |   |             #
+ * #               | \_|  ''\---/''  |_/ |             #
+ * #               \  .-\__  '-'  ___/-. /             #
+ * #             ___'. .'  /--.--\  `. .'___           #
+ * #          ."" '<  `.___\_<|>_/___.'  >' "" .       #
+ * #         | | :  `- \`.;`\ _ /`;.`/ -`  : | |       #
+ * #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+ * #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+ * #                       `=---='                     #
+ * #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+ * #               佛力加持      佛光普照              #
+ * #  Buddha's power blessing, Buddha's light shining  #
+ * #####################################################
  */
 
 #ifndef _MLISTEN_H_
@@ -29,6 +53,8 @@ typedef struct mlisten_st_ {
     /* if supported or started REUSEPORT function */
     int          reuseport;
 
+    void       * popt;
+
     void       * para;
     IOHandler  * cb;
     void       * cbpara;
@@ -39,7 +65,7 @@ typedef struct mlisten_st_ {
     void       * pcore;
 } mlisten_t;
 
-void * mlisten_alloc (char * localip, int port, int fdtype, void * para, IOHandler * cb, void * cbpara);
+void * mlisten_alloc (char * localip, int port, int fdtype, void * popt, void * para, IOHandler * cb, void * cbpara);
 void   mlisten_free  (void * vmln);
 int    mlisten_iodev_add (void * vmln, void * pdev);
 
@@ -57,7 +83,7 @@ int    epcore_mlisten_create (void * epcore, void * vepump);
 
 
 void * mlisten_open  (void * epcore,  char * localip, int port, int fdtype,
-                      void * para, IOHandler * cb, void * cbpara);
+                      void * popt, void * para, IOHandler * cb, void * cbpara);
 int    mlisten_close (void * vmln);
 
 
