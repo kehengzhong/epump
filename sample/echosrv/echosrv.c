@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2020 Ke Hengzhong <kehengzhong@hotmail.com>
+ * Copyright (c) 2003-2024 Ke Hengzhong <kehengzhong@hotmail.com>
  * All rights reserved.
  */
 
@@ -45,21 +45,29 @@ int main (int argc, char ** argv)
     signal(SIGTERM, signal_handler); /* catch kill signal */
     signal(SIGINT, signal_handler); /* catch SIGINT signal */
 
-    gpcore = pcore = epcore_new(65536, 1);
+    if (argc > 1 && argv[1])
+        listenport = (int)strtol(argv[1], NULL, 10);
+    if (listenport < 10 || listenport > 65535)
+        listenport = 8080;
+
+    gpcore = pcore = epcore_new(65536);
 
     /* do some initialization */
-    mlisten = eptcp_mlisten(pcore, NULL, listenport, NULL, echo_pump, pcore);
+    mlisten = eptcp_mlisten(pcore, NULL, listenport,
+                            NULL, /* socket option */
+                            NULL, /* given listen-device parameter */
+                            echo_pump, pcore);
     if (!mlisten) goto exit;
 
     printf("EchoSrv TCP Port: %d being listened\n\n", listenport);
 
-    iotimer_start(pcore, 90*1000, 1001, NULL, echo_pump, pcore);
+    iotimer_start(pcore, 90*1000, 1001, NULL, echo_pump, pcore, 0);
 
     /* start 2 worker threads */
-    epcore_start_worker(pcore, 2);
+    //epcore_start_worker(pcore, 2);
 
-    /* start 1 epump threads */
-    epcore_start_epump(pcore, 1);
+    /* start 2 epump threads */
+    epcore_start_epump(pcore, 2);
 
     /* main thread executing the epump_main_proc as an epump thread */
     epump_main_start(pcore, 0);
@@ -91,7 +99,11 @@ int echo_pump (void * vpcore, void * vobj, int event, int fdtype)
             return -1;
 
         while (1) {
-            pdev = eptcp_accept(iodev_epcore(vobj), vobj, NULL, &ret, echo_pump, pcore, BIND_ONE_EPUMP);
+            pdev = eptcp_accept(iodev_epcore(vobj), vobj,
+                                NULL, /* socket option */
+                                NULL, /* accepted device parameter */
+                                echo_pump, pcore, BIND_ONE_EPUMP,
+                                0, &ret);
             if (!pdev) break;
 
             printf("\nThreadID=%lu, ListenFD=%d EPumpID=%lu WorkerID=%lu "
@@ -136,8 +148,8 @@ int echo_pump (void * vpcore, void * vobj, int event, int fdtype)
             printf("\nThreadID=%lu IOTimerID=%lu EPumpID=%lu timeout, curtick=%lu\n",
                    get_threadid(), iotimer_id(vobj), 
                    epumpid(iotimer_epump(vobj)), time(0));
-            epcore_print(pcore);
-            iotimer_start(pcore, 90*1000, 1001, NULL, echo_pump, pcore);
+            epcore_print(pcore, NULL, stdout);
+            iotimer_start(pcore, 90*1000, 1001, NULL, echo_pump, pcore, 0);
         }
         break;
 
