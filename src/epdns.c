@@ -1027,6 +1027,7 @@ int dns_cache_a_num (void * vcache)
         rr = arr_value(cache->rr_list, i);
         if (!rr) {
             arr_delete(cache->rr_list, i); i--; num--;
+            dns_rr_free(rr);
             continue;
         }
  
@@ -2102,6 +2103,11 @@ void dns_mgmt_clean (void * vmgmt)
         mgmt->cache_pool = NULL;
     }
  
+    if (mgmt->fragmem_kempool) {
+        kempool_free(mgmt->fragmem_kempool);
+        mgmt->fragmem_kempool = NULL;
+    }
+
     kfree(mgmt);
 }
  
